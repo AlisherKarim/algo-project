@@ -38,7 +38,8 @@ export const NavBar: FC = (props) => {
           <Nav className="me-auto">
             <Nav.Link onClick={() => router.push("/")}>Home</Nav.Link>
             <Nav.Link onClick={() => router.push("/contribute")}>Contribute</Nav.Link>
-            
+            <Nav.Link onClick={() => router.push("/profile")}>Profile</Nav.Link>
+
           </Nav>
           <Form className="d-flex m-1">
               <Form.Control

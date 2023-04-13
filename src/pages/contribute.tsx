@@ -1,5 +1,5 @@
 import { SubmitModal } from "@/components/SubmitModal";
-import { FileUploader, withAuthenticator } from "@aws-amplify/ui-react";
+import { withAuthenticator } from "@aws-amplify/ui-react";
 import { FC, useState } from "react";
 import { FormEvent } from "react";
 import { Button, Card, Container, Form } from "react-bootstrap";
@@ -29,13 +29,9 @@ const ContributePage: FC<{user: any, signOut: any}> = ({user, signOut}) => {
                 <Card.Title className="text-primary">Data Strucure</Card.Title>
                 <Card.Subtitle className="mb-2 text-muted">Upload your data structure code</Card.Subtitle>
               </div>
-              {/* <Form.Group controlId="formFile" className="mb-3 mt-3" style={{bottom: "5rem"}}>
+              <Form.Group controlId="formFile" className="mb-3 mt-3" style={{bottom: "5rem"}}>
                 <Form.Control type="file" onInput={handleFileInput} />
-              </Form.Group> */}
-              <FileUploader
-                acceptedFileTypes={['.zip', '.jpeg', '.jpg', '.png']}
-                accessLevel="public"
-              />
+              </Form.Group>
             </Card.Body>
           </Card>
 
@@ -45,13 +41,9 @@ const ContributePage: FC<{user: any, signOut: any}> = ({user, signOut}) => {
                 <Card.Title className="text-primary">Algorithm</Card.Title>
                 <Card.Subtitle className="mb-2 text-muted">Upload your algorithm code</Card.Subtitle>
               </div>
-              {/* <Form.Group controlId="formFile" className="mb-3 mt-3">
+              <Form.Group controlId="formFile" className="mb-3 mt-3">
                 <Form.Control type="file" />
-              </Form.Group> */}
-              <FileUploader
-                acceptedFileTypes={['image/*']}
-                accessLevel="public"
-              />
+              </Form.Group>
             </Card.Body>
           </Card>
 
@@ -61,13 +53,9 @@ const ContributePage: FC<{user: any, signOut: any}> = ({user, signOut}) => {
                 <Card.Title className="text-primary">Problem generator</Card.Title>
                 <Card.Subtitle className="mb-2 text-muted">Upload your problem generator code</Card.Subtitle>
               </div>
-              {/* <Form.Group controlId="formFile" className="mb-3 mt-3">
+              <Form.Group controlId="formFile" className="mb-3 mt-3">
                 <Form.Control type="file" />
-              </Form.Group> */}
-              <FileUploader
-                acceptedFileTypes={['image/*']}
-                accessLevel="public"
-              />
+              </Form.Group>
             </Card.Body>
           </Card>
 
@@ -77,13 +65,9 @@ const ContributePage: FC<{user: any, signOut: any}> = ({user, signOut}) => {
                 <Card.Title className="text-primary">Data set</Card.Title>
                 <Card.Subtitle className="mb-2 text-muted">Upload your data set</Card.Subtitle>
               </div>
-              {/* <Form.Group controlId="formFile" className="mb-3 mt-3">
+              <Form.Group controlId="formFile" className="mb-3 mt-3">
                 <Form.Control type="file" />
-              </Form.Group> */}
-              <FileUploader
-                acceptedFileTypes={['image/*']}
-                accessLevel="public"
-              />
+              </Form.Group>
             </Card.Body>
           </Card>
 
