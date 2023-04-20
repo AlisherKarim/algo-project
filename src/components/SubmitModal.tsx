@@ -1,3 +1,4 @@
+import { Skeleton } from '@mui/material';
 import React, { FC, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
@@ -26,6 +27,7 @@ export const SubmitModal: FC<{show: boolean, setShow: (s: boolean) => void}> = (
         </Modal.Header>
         <Modal.Body>
           Here will be the description of the manifest.yaml
+          <Skeleton height={500} animation={false}/>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleClose}>

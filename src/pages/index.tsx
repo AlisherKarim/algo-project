@@ -1,25 +1,20 @@
-import Head from 'next/head'
-import Image from 'next/image'
 import { Inter } from 'next/font/google'
-import styles from '@/styles/Home.module.css'
-import Link from 'next/link'
-import { Button, Container, Form, InputGroup } from 'react-bootstrap'
-
-const inter = Inter({ subsets: ['latin'] })
+import Button from '@mui/material/Button';
+import { Storage } from 'aws-amplify'
+import { Container, FormControl, Input, InputAdornment, InputLabel, TextField } from '@mui/material'
 
 export default function Home() {
   return (
     <>
       <main>
         <Container style={{marginTop: "7rem"}}>
-          <Form.Label htmlFor="basic-url">Search your algo</Form.Label>
-          <InputGroup size="sm" className="mb-3">
-            <Form.Control
-              aria-label="Small"
-              aria-describedby="inputGroup-sizing-sm"
+          <FormControl fullWidth sx={{ m: 1 }} variant="standard">
+            <InputLabel htmlFor="standard-adornment-amount">Search your algorithm</InputLabel>
+            <Input
+              id="standard-adornment-amount"
             />
-            <Button className='btn-secondary'>Search</Button>
-          </InputGroup>
+          </FormControl>
+          <Button>Search</Button>
         </Container>
       </main>
     </>

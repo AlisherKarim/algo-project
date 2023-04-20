@@ -1,69 +1,244 @@
-import { User } from '@/types';
-import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Auth } from 'aws-amplify';
-import Link from 'next/link';
+import * as React from 'react';
+import AppBar from '@mui/material/AppBar';
+import Box from '@mui/material/Box';
+import Toolbar from '@mui/material/Toolbar';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import Menu from '@mui/material/Menu';
+import MenuIcon from '@mui/icons-material/Menu';
+import Container from '@mui/material/Container';
+import Avatar from '@mui/material/Avatar';
+import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
+import MenuItem from '@mui/material/MenuItem';
+import AdbIcon from '@mui/icons-material/Adb';
 import { useRouter } from 'next/router';
-import { FC, useEffect, useState } from 'react';
-import { Button, Form, NavItem } from 'react-bootstrap';
-import Container from 'react-bootstrap/Container';
-import Nav from 'react-bootstrap/Nav';
-import Navbar from 'react-bootstrap/Navbar';
-import LogoutIcon from '@mui/icons-material/Logout';
+import { useAuthenticator } from '@aws-amplify/ui-react';
 
-export const NavBar: FC = (props) => {
-  const router = useRouter()
-  const signOutAndNavigate = () => {
-    Auth.signOut()
-    router.push("/")
+const pages = [
+  {
+    path: '/',
+    name: 'Home',
+  }, 
+  {
+    path: '/contribute',
+    name: 'Contribute'
+  },
+  {
+    path: '/about',
+    name: 'About'
+  }
+];
+const settings = [
+  {
+    path: '/profile', 
+    name:'Profile'
+  },
+  {
+    path: '/account',
+    name: 'Account'
+  }, 
+  {
+    path: '/dashboard',
+    name: 'Dashboard'
+  },
+  {
+    path: '/logout',
+    name: 'Logout'
+  }
+];
+
+function stringToColor(string: string) {
+  let hash = 0;
+  let i;
+
+  /* eslint-disable no-bitwise */
+  for (i = 0; i < string.length; i += 1) {
+    hash = string.charCodeAt(i) + ((hash << 5) - hash);
   }
 
+  let color = '#';
+
+  for (i = 0; i < 3; i += 1) {
+    const value = (hash >> (i * 8)) & 0xff;
+    color += `00${value.toString(16)}`.slice(-2);
+  }
+  /* eslint-enable no-bitwise */
+
+  return color;
+}
+
+function stringAvatar(name: string) {
+  return {
+    sx: {
+      bgcolor: stringToColor(name),
+    },
+    children: `${name.split(' ')[0][0]}${name.split(' ')[1][0]}`,
+  };
+}
+
+export const NavBar = () => {
+  const router = useRouter()
   const { user, signOut } = useAuthenticator((context) => [context.user]);
 
-  useEffect(() => {
-    Auth.currentAuthenticatedUser()
-      .then(user => {
-        console.log("User: ", user.attributes.username)
-      })
-      .catch(err => {
-        console.log(err)
-      })
-  }, [])
+  const signOutAndMain = () => {
+    signOut()
+    router.push('/')
+    handleCloseUserMenu()
+  }
+
+  const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
+  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
+
+  const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElNav(event.currentTarget);
+  };
+  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElUser(event.currentTarget);
+  };
+
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
 
   return (
-    <Navbar bg="light" expand="lg">
-      <Container>
-        <Navbar.Brand href="/">Logo</Navbar.Brand>
-        <Navbar.Toggle aria-controls="basic-navbar-nav" data-bs-target="#basic-navbar-nav" data-bs-toggle="collapse"/>
-        <Navbar.Collapse id="basic-navbar-nav" >
-          <Nav className="me-auto">
-            <Nav.Link onClick={() => router.push("/")}>Home</Nav.Link>
-            <Nav.Link onClick={() => router.push("/contribute")}>Contribute</Nav.Link>
-            <Nav.Link onClick={() => router.push("/profile")}>Profile</Nav.Link>
+    <AppBar position="static" color='primary'>
+      <Container maxWidth="xl">
+        <Toolbar disableGutters>
+          <AdbIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
+          <Typography
+            variant="h6"
+            noWrap
+            component="a"
+            href="/"
+            sx={{
+              mr: 2,
+              display: { xs: 'none', md: 'flex' },
+              fontFamily: 'monospace',
+              fontWeight: 700,
+              letterSpacing: '.3rem',
+              color: 'inherit',
+              textDecoration: 'none',
+            }}
+          >
+            LOGO
+          </Typography>
 
-          </Nav>
-          <Form className="d-flex m-1">
-              <Form.Control
-                type="search"
-                placeholder="Search"
-                className="me-2"
-                aria-label="Search"
-              />
-              <Button variant="outline-secondary">Search</Button>
-            </Form>
-          <Nav.Item>
+          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+            <IconButton
+              size="large"
+              aria-label="account of current user"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              onClick={handleOpenNavMenu}
+              color="inherit"
+            >
+              <MenuIcon />
+            </IconButton>
+            <Menu
+              id="menu-appbar"
+              anchorEl={anchorElNav}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'left',
+              }}
+              open={Boolean(anchorElNav)}
+              onClose={handleCloseNavMenu}
+              sx={{
+                display: { xs: 'block', md: 'none' },
+              }}
+            >
+              {pages.map((page) => (
+                <MenuItem key={page.name} onClick={() => {router.push(page.path); handleCloseNavMenu()}}>
+                  <Typography textAlign="center">{page.name}</Typography>
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
+          <AdbIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
+          <Typography
+            variant="h5"
+            noWrap
+            component="a"
+            href=""
+            sx={{
+              mr: 2,
+              display: { xs: 'flex', md: 'none' },
+              flexGrow: 1,
+              fontFamily: 'monospace',
+              fontWeight: 700,
+              letterSpacing: '.3rem',
+              color: 'inherit',
+              textDecoration: 'none',
+            }}
+          >
+            LOGO
+          </Typography>
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+            {pages.map((page) => (
+              <Button
+                key={page.name}
+                onClick={() => router.push(`${page.path}`)}
+                sx={{ my: 2, color: 'white', display: 'block' }}
+              >
+                {/* <Link href={`/${page}`}> */}
+                  {page.name}
+                {/* </Link> */}
+              </Button>
+            ))}
+          </Box>
+
+          <Box sx={{ flexGrow: 0 }}>
             {user ? 
-              <>
-                {/* <Navbar.Text></Navbar.Text> */}
-                <Button variant='link' onClick={signOutAndNavigate}>
-                  {user.attributes?.name + ' '}<LogoutIcon>A</LogoutIcon>
-                </Button>
-              </>
-               : 
-              <Button variant='link' onClick={() => router.push("/login")}>Login</Button> 
+            <>            
+              <Tooltip title="Open settings">
+                <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                  <Avatar {...stringAvatar(user.attributes?.name ?? 'John Doe')} />
+                </IconButton>
+              </Tooltip>
+              <Menu
+                sx={{ mt: '45px' }}
+                id="menu-appbar"
+                anchorEl={anchorElUser}
+                anchorOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                open={Boolean(anchorElUser)}
+                onClose={handleCloseUserMenu}
+              >
+                {settings.map((setting) => (
+                  setting.name === 'Logout' ? 
+                  <MenuItem key={setting.name} onClick={signOutAndMain}>
+                    <Typography textAlign="center">{setting.name}</Typography>
+                  </MenuItem>
+                  :
+                  <MenuItem key={setting.name} onClick={() => {router.push(`${setting.path}`); handleCloseNavMenu()}}>
+                    <Typography textAlign="center">{setting.name}</Typography>
+                  </MenuItem>
+                ))}
+              </Menu>
+            </>
+            :
+              <Button color="inherit" href='/login'>Login</Button>
             }
-          </Nav.Item>
-        </Navbar.Collapse>
+          </Box>
+        </Toolbar>
       </Container>
-    </Navbar>
+    </AppBar>
   );
 }
