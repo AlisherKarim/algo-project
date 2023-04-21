@@ -8,8 +8,10 @@ import { Storage } from 'aws-amplify';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { v4 as uuidv4 } from 'uuid';
 import { CircularProgress } from '@mui/material';
+import decompress from 'decompress';
+import JSZip from 'jszip';
 
-export const FolderView = () => {
+export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> = ({setCurrentFile}) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [data, setData] = React.useState<{} | null>(null)
 
@@ -34,10 +36,28 @@ export const FolderView = () => {
     Storage.list(`${user.username}`) // for listing ALL files without prefix, pass '' instead
       .then((response) => {
         setData(processStorageList(response))
-        console.log(data)
       })
       .catch((err) => console.log(err));
   }, [])
+
+  const handleFileOpen = (data: any) => {
+    
+    Storage.get(data.key).then((result) => {
+      console.log(result)
+      fetch('/api/decompress', {
+        method: 'POST',
+        body: JSON.stringify(result),
+        headers: {
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json",
+        },
+      }).then(res => res.json())
+      .then(result => {
+        setCurrentFile(result.data)
+      })
+    })
+    
+  }
 
   const renderTree = (nodes: any) => {
     if(nodes.__name == user.username) 
@@ -45,7 +65,7 @@ export const FolderView = () => {
     const children = Object.keys(nodes).filter((node: any) => !['__name', '__id', '__data'].includes(node))
 
     return (
-      <TreeItem key={nodes.__id} nodeId={nodes.__id} label={nodes.__name}>
+      <TreeItem key={nodes.__id} nodeId={nodes.__id} label={nodes.__name} onClick={() => handleFileOpen(nodes.__data)}>
         {
           children.length ? 
             children.map((node: any) => renderTree(nodes[node]))
