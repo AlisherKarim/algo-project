@@ -20,8 +20,6 @@ export default async (
   req,
   res
 ) => {
-  console.log(req.body)
-
   const zipFileBuffer = await get(req.body)
   const zip = new AdmZip(zipFileBuffer);
   const entries = zip.getEntries();
@@ -29,7 +27,7 @@ export default async (
     if(entry.entryName != 'manifest.text')
       continue
     const buffer = entry.getData();
-    console.log("File: " + entry.entryName + ", length (bytes): " + buffer.length + ", contents: " + buffer.toString("utf-8"));
+    // console.log("File: " + entry.entryName + ", length (bytes): " + buffer.length + ", contents: " + buffer.toString("utf-8"));
     res.status(200).json({ data: buffer.toString("utf-8")})
   }
 }

@@ -1,28 +1,13 @@
+import { useAuthenticator } from '@aws-amplify/ui-react'
 import { StorageManager } from '@aws-amplify/ui-react-storage'
-import { Box, Button, Card, CardContent, Modal, Typography } from "@mui/material"
+import { Alert, Box, Button, Card, CardContent, Modal, Typography } from "@mui/material"
 import { useEffect } from 'react'
 import { ChangeEvent } from 'react'
 import { FC, FormEvent, useState } from "react"
 
-const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | undefined}> = ({open, handleClose, file}) => {
-  // const [content, setContent] = useState<string>('Loading manifest...')
-  // const [blob, setBlob] = useState()
-  // useEffect(() => {
-  //   if(open && file) {
-  //     const url = URL.createObjectURL(blob);
-  //     fetch('/api/decompress', {
-  //       method: 'POST',
-  //       body: JSON.stringify(url),
-  //       headers: {
-  //         Accept: "application/json, text/plain, */*",
-  //         "Content-Type": "application/json",
-  //       },
-  //     }).then(res => res.json())
-  //       .then(result => {
-  //         setContent(result.data)
-  //       })
-  //   }
-  // }, [open])
+const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | undefined, storagePath: string}> = ({open, handleClose, file, storagePath}) => {
+  const { user } = useAuthenticator((context) => [context.user]);
+
   const style = {
     position: 'absolute' as 'absolute',
     top: '50%',
@@ -35,6 +20,25 @@ const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | unde
     boxShadow: 24,
     p: 4,
   };
+
+  const [error, setError] = useState<string>()
+
+  const handleSubmit = async () => {
+    if (!file || !user.username) 
+      return
+    var data = new FormData()
+    data.append('file', file)
+    data.append('path', storagePath)
+    data.append('username', user.username)
+    console.log(data)
+    fetch("https://1c2kn07ik5.execute-api.us-east-1.amazonaws.com/publish", {
+      method: 'POST',
+      body: data,
+      mode: 'no-cors',
+    }).then(res => handleClose())
+    .catch(err => setError("Something went wrong"))
+  }
+
   return (
     <Modal
       open={open}
@@ -43,10 +47,11 @@ const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | unde
       aria-describedby="modal-modal-description"
     >
       <Box sx={style}>
+        {error && <Alert severity="error">{error}</Alert>}
         <Typography id="modal-modal-title" variant="h6" component="h2">
           You are uploading the next file: <span>{file?.name}</span>
         </Typography>
-        <Button variant='outlined' color='success'>Approve and submit</Button>
+        <Button variant='outlined' color='success' onClick={handleSubmit}>Approve and submit</Button>
       </Box>
     </Modal>
   )
@@ -67,7 +72,7 @@ export const FileUploader: FC<{username: string, folder: string, title: string, 
 
   return (
     <>
-      <UploadModal open={open} handleClose={handleClose} file={file} />
+      <UploadModal open={open} handleClose={handleClose} file={file} storagePath={`public/${username}/${folder}`}/>
       <Card style={{ width: '18rem' }} variant="outlined">
         <CardContent>
           <div style={{height: "100px"}}>

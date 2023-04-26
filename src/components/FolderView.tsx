@@ -42,19 +42,22 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> =
 
   const handleFileOpen = (data: any) => {
     
-    Storage.get(data.key).then((result) => {
+    Storage.get(data.key, {download: true}).then((result) => {
       console.log(result)
-      fetch('/api/decompress', {
-        method: 'POST',
-        body: JSON.stringify(result),
-        headers: {
-          Accept: "application/json, text/plain, */*",
-          "Content-Type": "application/json",
-        },
-      }).then(res => res.json())
-      .then(result => {
-        setCurrentFile(result.data)
-      })
+      const reader = new FileReader();
+
+      // When the reader has finished loading the blob, convert it to a string
+      reader.addEventListener('loadend', (event) => {
+        const text = event?.target?.result?.toString();
+        if(text)
+          setCurrentFile(text)
+        else 
+          setCurrentFile('Open file to view...')
+      });
+
+      // Read the blob as text
+      if(result.Body instanceof Blob)
+      reader.readAsText(result.Body);
     })
     
   }
@@ -65,7 +68,12 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> =
     const children = Object.keys(nodes).filter((node: any) => !['__name', '__id', '__data'].includes(node))
 
     return (
-      <TreeItem key={nodes.__id} nodeId={nodes.__id} label={nodes.__name} onClick={() => handleFileOpen(nodes.__data)}>
+      <TreeItem key={nodes.__id} nodeId={nodes.__id} label={nodes.__name} onClick={() => {
+        if(!children.length)
+          handleFileOpen(nodes.__data)
+        else
+          setCurrentFile('Open file to view...')
+        }}>
         {
           children.length ? 
             children.map((node: any) => renderTree(nodes[node]))
