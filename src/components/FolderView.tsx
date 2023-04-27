@@ -8,8 +8,6 @@ import { Storage } from 'aws-amplify';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { v4 as uuidv4 } from 'uuid';
 import { CircularProgress } from '@mui/material';
-import decompress from 'decompress';
-import JSZip from 'jszip';
 
 export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> = ({setCurrentFile}) => {
   const { user } = useAuthenticator((context) => [context.user]);
@@ -43,7 +41,6 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> =
   const handleFileOpen = (data: any) => {
     
     Storage.get(data.key, {download: true}).then((result) => {
-      console.log(result)
       const reader = new FileReader();
 
       // When the reader has finished loading the blob, convert it to a string
@@ -57,7 +54,7 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> =
 
       // Read the blob as text
       if(result.Body instanceof Blob)
-      reader.readAsText(result.Body);
+        reader.readAsText(result.Body);
     })
     
   }

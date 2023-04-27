@@ -25,6 +25,10 @@ const pages = [
     name: 'Contribute'
   },
   {
+    path: '/dashboard',
+    name: 'Dashboard'
+  },
+  {
     path: '/about',
     name: 'About'
   }

@@ -1,19 +1,21 @@
 import { useAuthenticator } from '@aws-amplify/ui-react'
-import { StorageManager } from '@aws-amplify/ui-react-storage'
-import { Alert, Box, Button, Card, CardContent, Modal, Typography } from "@mui/material"
-import { useEffect } from 'react'
-import { ChangeEvent } from 'react'
-import { FC, FormEvent, useState } from "react"
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { monokaiSublime } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Link, Modal, Typography } from "@mui/material"
+import FilePresentIcon from '@mui/icons-material/FilePresent';
+import JSZip from 'jszip'
+import { FC, useState } from "react"
 
-const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | undefined, storagePath: string}> = ({open, handleClose, file, storagePath}) => {
+const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | undefined, storagePath: string, manifest: string}> = ({open, handleClose, file, storagePath, manifest}) => {
   const { user } = useAuthenticator((context) => [context.user]);
+  const [loading, setLoading] = useState<boolean>(false)
 
   const style = {
     position: 'absolute' as 'absolute',
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    width: 400,
+    width: '60%',
     bgcolor: 'background.paper',
     border: '2px solid #000',
     borderRadius: '5px',
@@ -26,17 +28,19 @@ const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | unde
   const handleSubmit = async () => {
     if (!file || !user.username) 
       return
+    setLoading(true)
     var data = new FormData()
     data.append('file', file)
     data.append('path', storagePath)
     data.append('username', user.username)
-    console.log(data)
     fetch("https://1c2kn07ik5.execute-api.us-east-1.amazonaws.com/publish", {
       method: 'POST',
       body: data,
       mode: 'no-cors',
-    }).then(res => handleClose())
-    .catch(err => setError("Something went wrong"))
+    }).then(res => {
+      setLoading(false); 
+      handleClose()
+    }).catch(err => setError("Something went wrong"))
   }
 
   return (
@@ -49,9 +53,22 @@ const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | unde
       <Box sx={style}>
         {error && <Alert severity="error">{error}</Alert>}
         <Typography id="modal-modal-title" variant="h6" component="h2">
-          You are uploading the next file: <span>{file?.name}</span>
+          You are uploading the next file:  <Link underline="none" sx={{display: 'flex', alignItems: 'center'}}><FilePresentIcon sx={{marginBottom: 0}}/> {file?.name}</Link>
         </Typography>
-        <Button variant='outlined' color='success' onClick={handleSubmit}>Approve and submit</Button>
+        
+        <SyntaxHighlighter children={manifest} language='yaml' style={monokaiSublime} customStyle={{
+            // width: 500,
+            height: 500,
+            backgroundColor: '#001E3C',
+            color: 'white',
+            padding: '10px',
+            flexGrow: 1, 
+            borderRadius: '5px'
+          }}/>
+        <Button variant='outlined' color='success' onClick={handleSubmit} disabled={loading} > 
+          {loading && <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>} 
+          <span>Approve and submit</span>
+        </Button>
       </Box>
     </Modal>
   )
@@ -59,10 +76,28 @@ const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | unde
 
 export const FileUploader: FC<{username: string, folder: string, title: string, subtitle: string}> = ({username, folder, title, subtitle}) => {
   const [file, setFile] = useState<File>()
+  const [manifest, setManifest] = useState<string | null>(null)
   const [open, setOpen] = useState<boolean>(false)
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0])
+    const file = e.target.files![0];
+    const reader = new FileReader();
+
+    reader.onload = async (event: ProgressEvent<FileReader>) => {
+      const data = event.target!.result as ArrayBuffer;
+      const zip = await JSZip.loadAsync(data);
+      // Access the files inside the zip using the file() function
+      const files = zip.file(/.*/);
+      // Do something with the files, such as logging their names
+      files.forEach(async (file) => {
+        if(file.name === 'manifest.yml')
+          setManifest(await file.async("text"))
+      });
+    };
+
+    reader.readAsArrayBuffer(file);
+
     setOpen(true)
   }
 
@@ -72,7 +107,7 @@ export const FileUploader: FC<{username: string, folder: string, title: string, 
 
   return (
     <>
-      <UploadModal open={open} handleClose={handleClose} file={file} storagePath={`public/${username}/${folder}`}/>
+      <UploadModal open={open} handleClose={handleClose} file={file} storagePath={`public/${username}/${folder}`} manifest={manifest ?? 'Loading...'}/>
       <Card style={{ width: '18rem' }} variant="outlined">
         <CardContent>
           <div style={{height: "100px"}}>
