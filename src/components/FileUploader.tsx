@@ -1,12 +1,27 @@
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { monokaiSublime } from "react-syntax-highlighter/dist/esm/styles/hljs";
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Link, Modal, Typography } from "@mui/material"
+import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, Link, Modal, Snackbar, Typography } from "@mui/material"
 import FilePresentIcon from '@mui/icons-material/FilePresent';
+import CloseIcon from '@mui/icons-material/Close';
 import JSZip from 'jszip'
-import { FC, useState } from "react"
+import React, { FC, useState } from "react"
 
-const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | undefined, storagePath: string, manifest: string}> = ({open, handleClose, file, storagePath, manifest}) => {
+const UploadModal: FC<{
+    open: boolean,
+    handleClose: () => void,
+    handleSnackbar: (v: boolean) => void,
+    file: File | undefined,
+    storagePath: string,
+    manifest: string
+  }> = ({
+      open,
+      handleClose,
+      handleSnackbar,
+      file,
+      storagePath,
+      manifest
+    }) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [loading, setLoading] = useState<boolean>(false)
 
@@ -40,6 +55,7 @@ const UploadModal: FC<{open: boolean, handleClose: () => void, file: File | unde
     }).then(res => {
       setLoading(false); 
       handleClose()
+      handleSnackbar(true)
     }).catch(err => setError("Something went wrong"))
   }
 
@@ -78,6 +94,7 @@ export const FileUploader: FC<{username: string, folder: string, title: string, 
   const [file, setFile] = useState<File>()
   const [manifest, setManifest] = useState<string | null>(null)
   const [open, setOpen] = useState<boolean>(false)
+  const [sOpen, setSOpen] = useState<boolean>(false)
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0])
@@ -105,9 +122,36 @@ export const FileUploader: FC<{username: string, folder: string, title: string, 
     setOpen(false)
   }
 
+  const handleSnackbarClose = () => {
+    setSOpen(false)
+  }
+
+  const action = (
+    <React.Fragment>
+      <Button color="secondary" size="small" onClick={handleSnackbarClose}>
+        Done
+      </Button>
+      <IconButton
+        size="small"
+        aria-label="close"
+        color="inherit"
+        onClick={handleClose}
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </React.Fragment>
+  );
+
   return (
     <>
-      <UploadModal open={open} handleClose={handleClose} file={file} storagePath={`public/${username}/${folder}`} manifest={manifest ?? 'Loading...'}/>
+      <Snackbar
+        open={sOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        message="File successfully uploaded"
+        action={action}
+      />
+      <UploadModal open={open} handleClose={handleClose} handleSnackbar={setSOpen} file={file} storagePath={`public/${username}/${folder}`} manifest={manifest ?? 'Loading...'}/>
       <Card style={{ width: '18rem' }} variant="outlined">
         <CardContent>
           <div style={{height: "100px"}}>
