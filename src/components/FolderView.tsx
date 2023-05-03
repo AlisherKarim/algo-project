@@ -65,7 +65,16 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> =
     const children = Object.keys(nodes).filter((node: any) => !['__name', '__id', '__data'].includes(node))
 
     return (
-      <TreeItem key={nodes.__id} nodeId={nodes.__id} label={nodes.__name} onClick={() => {
+      <TreeItem 
+        key={nodes.__id}
+        nodeId={nodes.__id}
+        label={
+          <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+            <span>{nodes.__name}</span>
+            {/* {(children.length && (nodes.__name !== user.username))&& <Chip label={'Unpublished'} variant="outlined" size="small" />} */}
+          </div>
+        }
+        onClick={() => {
         if(!children.length)
           handleFileOpen(nodes.__data)
         else

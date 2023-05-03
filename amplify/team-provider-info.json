@@ -17,6 +17,15 @@
       },
       "storage": {
         "s3demoprojectstorage4d1e0601": {}
+      },
+      "function": {
+        "AdminQueries23e9d6e5": {
+          "deploymentBucketName": "amplify-demoproject-staging-235052-deployment",
+          "s3Key": "amplify-builds/AdminQueries23e9d6e5-3463535a377973645971-build.zip"
+        }
+      },
+      "api": {
+        "AdminQueries": {}
       }
     }
   }

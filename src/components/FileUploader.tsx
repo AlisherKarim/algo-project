@@ -1,11 +1,12 @@
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { monokaiSublime } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { monokaiSublime } from "react-syntax-highlighter/dist/cjs/styles/hljs";
 import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, Link, Modal, Snackbar, Typography } from "@mui/material"
 import FilePresentIcon from '@mui/icons-material/FilePresent';
 import CloseIcon from '@mui/icons-material/Close';
 import JSZip from 'jszip'
 import React, { FC, useState } from "react"
+import { StorageManager } from '@aws-amplify/ui-react-storage';
 
 const UploadModal: FC<{
     open: boolean,
@@ -45,10 +46,10 @@ const UploadModal: FC<{
       return
     setLoading(true)
     var data = new FormData()
-    data.append('file', file)
     data.append('path', storagePath)
-    data.append('username', user.username)
-    fetch("https://1c2kn07ik5.execute-api.us-east-1.amazonaws.com/publish", {
+    data.append('file', file)
+    // data.append('username', user.username)
+    fetch("https://1c2kn07ik5.execute-api.us-east-1.amazonaws.com/unzipAndUpload", {
       method: 'POST',
       body: data,
       mode: 'no-cors',

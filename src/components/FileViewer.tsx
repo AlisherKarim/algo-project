@@ -1,7 +1,7 @@
 import { Box, Skeleton } from "@mui/material"
 import { FC } from "react"
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { monokaiSublime } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { monokaiSublime } from "react-syntax-highlighter/dist/cjs/styles/hljs";
 
 export const FileViewer: FC<{currentFile: string | undefined}> = ({currentFile}) => {
   // TODO: change language according to the file
