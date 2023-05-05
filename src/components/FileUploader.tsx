@@ -54,7 +54,7 @@ const UploadModal: FC<{
       body: data,
       mode: 'no-cors',
     }).then(res => {
-      setLoading(false); 
+      setLoading(false);
       handleClose()
       handleSnackbar(true)
     }).catch(err => setError("Something went wrong"))
