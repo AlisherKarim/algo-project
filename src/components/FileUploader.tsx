@@ -1,4 +1,5 @@
 import { useAuthenticator } from '@aws-amplify/ui-react'
+import { v4 as uuidv4 } from "uuid";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { monokaiSublime } from "react-syntax-highlighter/dist/cjs/styles/hljs";
 import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, Link, Modal, Snackbar, Typography } from "@mui/material"
@@ -7,6 +8,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import JSZip from 'jszip'
 import React, { FC, useState } from "react"
 import { StorageManager } from '@aws-amplify/ui-react-storage';
+
+import { ddbDocClient, PutCommand } from "../libs/ddbDocClient"; 
+import { AnyNaptrRecord } from 'dns';
 
 const UploadModal: FC<{
     open: boolean,
@@ -53,10 +57,29 @@ const UploadModal: FC<{
       method: 'POST',
       body: data,
       mode: 'no-cors',
-    }).then(res => {
+    }).then(async res => {
       setLoading(false); 
       handleClose()
       handleSnackbar(true)
+
+      // after successful upload, create a record on "S3UploadRecords"
+      const params = {
+        TableName: "S3UploadRecords",
+        Item: {
+          uploadId: uuidv4(),
+          fileKey: `${storagePath}/${file.name}`.replace('.zip', ''),
+          status: "pending",
+          timestamp: new Date().toISOString(),
+          userName: user.username,
+        },
+    };
+      try {
+        const data = await ddbDocClient.send(new PutCommand(params));
+        console.log("Success - item added or updated", data);
+      } catch (err: any) {
+        console.error("Error", err.stack);
+      }
+
     }).catch(err => setError("Something went wrong"))
   }
 
