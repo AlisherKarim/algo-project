@@ -1,7 +1,7 @@
 import { CircularProgress, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, ListSubheader } from "@mui/material"
 import FolderIcon from '@mui/icons-material/Folder';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
-import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import LockIcon from '@mui/icons-material/Lock';
 import { FC, useEffect, useState } from "react";
 import { Storage } from "aws-amplify";
 import { useAuthenticator } from "@aws-amplify/ui-react";
@@ -36,7 +36,7 @@ export const TransactionList: FC<{setKeyPath: (path: string) => void}> = ({setKe
 
   return (
     <List
-      sx={{ width: '100%', height: '100%', maxWidth: 360, bgcolor: 'background.paper' }}
+      sx={{ width: '100%', height: '100%', bgcolor: 'background.paper' }}
       subheader={<ListSubheader>Transactions</ListSubheader>}
     >
       <Divider />
@@ -57,7 +57,7 @@ export const TransactionList: FC<{setKeyPath: (path: string) => void}> = ({setKe
               </ListItemIcon>
               <ListItemText id="switch-list-label-wifi" primary={t.name} secondary={t.tag}/>
               <ListItemIcon style={{justifyContent: 'end'}}>
-                <CheckBoxIcon color="success"/>
+                <LockIcon color="success"/>
               </ListItemIcon>
             </ListItemButton>
             <Divider />

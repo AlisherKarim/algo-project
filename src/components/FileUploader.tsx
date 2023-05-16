@@ -86,6 +86,9 @@ const UploadModal: FC<{
           {loading && <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>} 
           <span>Approve and submit</span>
         </Button>
+        <Button variant='outlined' color='secondary' onClick={handleClose} disabled={loading} sx={{left: '1rem'}} > 
+          <span>Cancel</span>
+        </Button>
       </Box>
     </Modal>
   )

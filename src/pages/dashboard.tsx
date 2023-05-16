@@ -11,7 +11,7 @@ const Dashboard = () => {
   const [keyPath, setKeyPath] = useState<string>()
 
   return <>
-    <div style={{display: 'flex', marginTop: '1.5rem', height: '85vh'}} >
+    <div style={{display: 'flex', marginTop: '0.5rem', height: '90vh'}} >
       <Splitter 
         direction={SplitDirection.Horizontal}
         initialSizes={[20, 20, 60]}
