@@ -7,13 +7,18 @@ import TreeItem from '@mui/lab/TreeItem';
 import { Storage } from 'aws-amplify';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { v4 as uuidv4 } from 'uuid';
-import { CircularProgress } from '@mui/material';
+import { CircularProgress, Typography } from '@mui/material';
 
-export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> = ({setCurrentFile}) => {
+export const FolderView: React.FC<{setCurrentFile: (content: string) => void, keyPath: string | undefined}> = ({setCurrentFile, keyPath}) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [data, setData] = React.useState<{} | null>(null)
+  const [isLoading, setLoading] = React.useState<boolean>(false)
 
   const processStorageList = (response: any) => {
+    console.log(response)
+    const folder = response.results.map((res: any) => {return {...res, path: res.key.split('/').splice(3).join('/')}})
+    console.log(folder)
+
     const filesystem = {__id: 'root', __name: 'root'};
     const add = (source: string, target: { [x: string]: any; }, item: any) => {
       const elements = source.split('/');
@@ -26,17 +31,22 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> =
         add(elements.join('/'), target[element], item);
       }
     };
-    response.results.forEach((item: { key: string; }) => add(item.key, filesystem, item));
+    folder.forEach((item: { path: string; }) => add(item.path, filesystem, item));
+    console.log(filesystem)
     return filesystem;
   }
 
   React.useEffect(() => {
-    Storage.list(`${user.username}`) // for listing ALL files without prefix, pass '' instead
-      .then((response) => {
-        setData(processStorageList(response))
-      })
-      .catch((err) => console.log(err));
-  }, [])
+    if(keyPath){
+      setLoading(true)
+      Storage.list(keyPath)
+        .then((response) => {
+          setData(processStorageList(response))
+          setLoading(false)
+        })
+        .catch((err) => console.log(err));
+    }
+  }, [keyPath])
 
   const handleFileOpen = (data: any) => {
     
@@ -59,12 +69,12 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> =
     
   }
 
-  const renderTree = (nodes: any) => {
+  const renderTree = (nodes: any): any => {
     if(nodes.__name == user.username) 
       nodes.__name = user.attributes?.name
     const children = Object.keys(nodes).filter((node: any) => !['__name', '__id', '__data'].includes(node))
 
-    return (
+    return nodes.__id !== 'root' ? (
       <TreeItem 
         key={nodes.__id}
         nodeId={nodes.__id}
@@ -75,35 +85,45 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void}> =
           </div>
         }
         onClick={() => {
-        if(!children.length)
-          handleFileOpen(nodes.__data)
-        else
-          setCurrentFile('Open file to view...')
-        }}>
+          if(!children.length)
+            handleFileOpen(nodes.__data)
+        }}
+      >
         {
           children.length ? 
             children.map((node: any) => renderTree(nodes[node]))
             : null
         }
       </TreeItem>
+    ) : (
+      children.length ? 
+        children.map((node: any) => renderTree(nodes[node]))
+        : null
     )
   }
     
 
   return (
-    <div style={{flexGrow: 1, padding: '10px'}}>
-      {data ? 
+    <div style={{
+      padding: '10px',
+      height: '100%'
+    }}>
+      {data ? isLoading ? 
+        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
+          <CircularProgress />
+        </div>
+        :
         <TreeView
           aria-label="rich object"
           defaultCollapseIcon={<ExpandMoreIcon />}
           defaultExpanded={['root']}
           defaultExpandIcon={<ChevronRightIcon />}
-          sx={{ flexGrow: 1, width: 300, overflowY: 'auto' }}
+          sx={{ flexGrow: 1, overflowY: 'auto' }}
         >
           {renderTree(data)}
         </TreeView>
         :
-        <CircularProgress />
+        <Typography variant='body2' sx={{color: '#757575'}}>Choose transaction to open</Typography>
       }
     </div>
   );

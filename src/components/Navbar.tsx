@@ -14,6 +14,7 @@ import MenuItem from '@mui/material/MenuItem';
 import CodeIcon from '@mui/icons-material/Code';
 import { useRouter } from 'next/router';
 import { useAuthenticator } from '@aws-amplify/ui-react';
+import { Chip } from '@mui/material';
 
 const pages = [
   {
@@ -27,6 +28,10 @@ const pages = [
   {
     path: '/dashboard',
     name: 'Dashboard'
+  },
+  {
+    path: 'https://algobek.talkyard.net/latest',
+    name: 'Discussions'
   },
   {
     path: '/about',
@@ -241,6 +246,7 @@ export const NavBar = () => {
               <Button color="inherit" href='/login'>Login</Button>
             }
           </Box>
+          {user?.getSignInUserSession()?.getAccessToken().payload['cognito:groups']?.includes('admins') && <Chip label="Admin" color="warning" sx={{marginLeft: '1rem'}}/>}
         </Toolbar>
       </Container>
     </AppBar>

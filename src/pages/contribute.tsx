@@ -1,14 +1,16 @@
 import { FileUploader } from "@/components/FileUploader";
 import { SubmitModal } from "@/components/SubmitModal";
-import { withAuthenticator } from "@aws-amplify/ui-react";
+import { useAuthenticator, withAuthenticator } from "@aws-amplify/ui-react";
 import { Button, Container } from "@mui/material";
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { FormEvent } from "react";
 
 const ContributePage: FC<{user: any, signOut: any}> = ({user, signOut}) => {
 
   const [file, setFile] = useState<File>()
   const [show, setShow] = useState<boolean>(false)
+
+  // const { user, signOut } = useAuthenticator((context) => [context.user])
 
   const handleFileInput = (event: FormEvent) => {
     setFile((event.target as HTMLInputElement)?.files?.[0])
@@ -17,6 +19,10 @@ const ContributePage: FC<{user: any, signOut: any}> = ({user, signOut}) => {
   const handleSubmitButton = () => {
     setShow(true)
   }
+
+  useEffect(() => {
+    console.log(user.getSignInUserSession()?.getAccessToken().payload['cognito:groups'])
+  }, [])
 
   return (
     <> 

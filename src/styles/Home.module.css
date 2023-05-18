@@ -7,6 +7,22 @@
   min-height: 100vh;
 }
 
+.customGutter {
+  padding: 0 !important;
+  height: 100%;
+  width: 1px;
+  background-color: black;
+  margin: 0 2px;
+}
+
+.customGutterGorizontal:hover {
+  cursor: col-resize;
+}
+
+.customGraggerGorizontal {
+  display: none;
+}
+
 .description {
   display: inherit;
   justify-content: inherit;
