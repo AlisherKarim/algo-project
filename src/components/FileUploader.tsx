@@ -1,4 +1,5 @@
 import { useAuthenticator } from '@aws-amplify/ui-react'
+import { v4 as uuidv4 } from "uuid";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { monokaiSublime } from "react-syntax-highlighter/dist/cjs/styles/hljs";
 import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, Link, Modal, Snackbar, Typography } from "@mui/material"
@@ -6,6 +7,8 @@ import FilePresentIcon from '@mui/icons-material/FilePresent';
 import CloseIcon from '@mui/icons-material/Close';
 import JSZip from 'jszip'
 import React, { FC, useState } from "react"
+
+import { ddbDocClient, PutCommand } from "../libs/ddbDocClient"; 
 import { StorageManager } from '@aws-amplify/ui-react-storage';
 
 const UploadModal: FC<{
@@ -53,10 +56,29 @@ const UploadModal: FC<{
       method: 'POST',
       body: data,
       mode: 'no-cors',
-    }).then(res => {
-      setLoading(false);
+    }).then(async res => {
+      setLoading(false); 
       handleClose()
       handleSnackbar(true)
+
+      // after successful upload, create a record on "S3UploadRecords"
+      const params = {
+        TableName: "S3UploadRecords",
+        Item: {
+          uploadId: uuidv4(),
+          fileKey: `${storagePath}/${file.name}`.replace('.zip', ''),
+          status: "pending",
+          timestamp: new Date().toISOString(),
+          userName: user.username,
+        },
+    };
+      try {
+        const data = await ddbDocClient.send(new PutCommand(params));
+        console.log("Success - item added or updated", data);
+      } catch (err: any) {
+        console.error("Error", err.stack);
+      }
+
     }).catch(err => setError("Something went wrong"))
   }
 
@@ -73,15 +95,16 @@ const UploadModal: FC<{
           You are uploading the next file:  <Link underline="none" sx={{display: 'flex', alignItems: 'center'}}><FilePresentIcon sx={{marginBottom: 0}}/> {file?.name}</Link>
         </Typography>
         
-        <SyntaxHighlighter children={manifest} language='yaml' style={monokaiSublime} customStyle={{
-            // width: 500,
-            height: 500,
-            backgroundColor: '#001E3C',
-            color: 'white',
-            padding: '10px',
-            flexGrow: 1, 
-            borderRadius: '5px'
-          }}/>
+        <SyntaxHighlighter language='yaml' style={monokaiSublime} customStyle={{
+          height: 500,
+          backgroundColor: '#001E3C',
+          color: 'white',
+          padding: '10px',
+          flexGrow: 1, 
+          borderRadius: '5px'
+        }}>
+          {manifest}
+        </SyntaxHighlighter>
         <Button variant='outlined' color='success' onClick={handleSubmit} disabled={loading} > 
           {loading && <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>} 
           <span>Approve and submit</span>

@@ -9,14 +9,16 @@ export const FileViewer: FC<{currentFile: string | undefined}> = ({currentFile})
     <>
       { 
         currentFile ? 
-          <SyntaxHighlighter children={currentFile} language="cpp" style={monokaiSublime} customStyle={{
+          <SyntaxHighlighter language="cpp" style={monokaiSublime} customStyle={{
             height: '100%',
             backgroundColor: '#001E3C',
             color: 'white',
             paddingLeft: '2px',
             position: 'relative',
             top: '-1rem'
-          }} showLineNumbers={true} wrapLines={true} />
+          }} showLineNumbers={true} wrapLines={true}>
+            {currentFile}
+            </SyntaxHighlighter>
         : 
           <Skeleton variant="rectangular" height={'100%'} animation={false} style={{backgroundColor: '#001E3C'}} />
       }
