@@ -15,6 +15,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import { useRouter } from 'next/router';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { Chip } from '@mui/material';
+import { Auth } from 'aws-amplify';
 
 const pages = [
   {
@@ -86,13 +87,16 @@ function stringAvatar(name: string) {
   };
 }
 
-export const NavBar = () => {
+export const NavBar: React.FC = () => {
   const router = useRouter()
-  const { user, signOut } = useAuthenticator((context) => [context.user]);
+  const {user, signOut} = useAuthenticator((context) => [context.user])
 
   const signOutAndMain = () => {
-    signOut()
-    router.push('/')
+    Auth.signOut().then((res) => {
+      router.push('/login')
+    }).catch(err => {
+      console.log(err)
+    })
     handleCloseUserMenu()
   }
 
@@ -208,41 +212,41 @@ export const NavBar = () => {
 
           <Box sx={{ flexGrow: 0 }}>
             {user ? 
-            <>            
-              <Tooltip title="Open settings">
-                <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                  <Avatar {...stringAvatar(user.attributes?.name ?? 'John Doe')} />
-                </IconButton>
-              </Tooltip>
-              <Menu
-                sx={{ mt: '45px' }}
-                id="menu-appbar"
-                anchorEl={anchorElUser}
-                anchorOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                open={Boolean(anchorElUser)}
-                onClose={handleCloseUserMenu}
-              >
-                {settings.map((setting) => (
-                  setting.name === 'Logout' ? 
-                  <MenuItem key={setting.name} onClick={signOutAndMain}>
-                    <Typography textAlign="center">{setting.name}</Typography>
-                  </MenuItem>
-                  :
-                  <MenuItem key={setting.name} onClick={() => {router.push(`${setting.path}`); handleCloseNavMenu()}}>
-                    <Typography textAlign="center">{setting.name}</Typography>
-                  </MenuItem>
-                ))}
-              </Menu>
-            </>
-            :
+              <>            
+                <Tooltip title="Open settings">
+                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                    <Avatar {...stringAvatar(user.attributes?.name ?? 'John Doe')} />
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  sx={{ mt: '45px' }}
+                  id="menu-appbar"
+                  anchorEl={anchorElUser}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(anchorElUser)}
+                  onClose={handleCloseUserMenu}
+                >
+                  {settings.map((setting) => (
+                    setting.name === 'Logout' ? 
+                    <MenuItem key={setting.name} onClick={signOutAndMain}>
+                      <Typography textAlign="center">{setting.name}</Typography>
+                    </MenuItem>
+                    :
+                    <MenuItem key={setting.name} onClick={() => {router.push(`${setting.path}`); handleCloseNavMenu()}}>
+                      <Typography textAlign="center">{setting.name}</Typography>
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </>
+              :
               <Button color="inherit" href='/login'>Login</Button>
             }
           </Box>

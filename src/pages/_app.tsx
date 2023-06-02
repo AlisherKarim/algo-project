@@ -2,15 +2,15 @@ import type { AppProps } from 'next/app'
 import {Amplify, Auth} from "aws-amplify"
 import awsconfig from "../aws-exports"
 import '@aws-amplify/ui-react/styles.css'
-import { NavBar } from '@/components/Navbar';
-import { Authenticator } from '@aws-amplify/ui-react';
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
+import { FC, useEffect, useState } from 'react';
+import LoginPage from './login';
 
 Amplify.configure({...awsconfig,ssr:true})
 
 export default function App({ Component, pageProps }: AppProps) {
   return <>
     <Authenticator.Provider>
-      <NavBar />
       <Component {...pageProps} />
     </Authenticator.Provider>
   </>

@@ -1,17 +1,29 @@
 import { Inter } from 'next/font/google'
 import Button from '@mui/material/Button';
-import { Storage } from 'aws-amplify'
+import { Auth, Storage } from 'aws-amplify'
 import { Alert, Box, Card, CardActions, CardContent, CircularProgress, Container, Divider, FormControl, Grid, Input, InputAdornment, InputLabel, List, ListItem, ListItemIcon, ListItemText, Stack, TextField, Typography } from '@mui/material'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { FC, useEffect, useState } from 'react';
+import { FC, useContext, useEffect, useState } from 'react';
 import CheckIcon from '@mui/icons-material/Check';
 import { getModule } from '../utils/wasm'
 import { ddbDocClient, PutCommand } from "../libs/ddbDocClient"; 
 import { v4 as uuidv4 } from 'uuid';
 import { useAuthenticator } from '@aws-amplify/ui-react';
+import { NavBar } from '@/components/Navbar';
+import { useRouter } from 'next/router';
 
 const Home: FC = () => {
   const { user } = useAuthenticator((context) => [context.user]);
+  const router = useRouter()
+
+  useEffect(() => {
+    Auth.currentAuthenticatedUser().then(user => {
+      // console.log(user)
+    }).catch(err => {
+      console.log(err)
+      router.push('/login')
+    })
+  }, [])
 
   const [algoPath, setAlgoPath] = useState<string>('')
   const [testgenPath, setTestgenPath] = useState<string>('')
@@ -29,6 +41,8 @@ const Home: FC = () => {
   }
 
   const handleCompile = async () => {
+    if(!algoPath || !testgenPath)
+      return
     // create uuid and send the file to the dynamo db
     const folder_id = uuidv4()
 
@@ -37,6 +51,7 @@ const Home: FC = () => {
 
     // algoKey: 'public/public_folder/algorithms/bubble',
     // testgenKey: 'public/public_folder/test_generaters/testgen1'
+    console.log(algoPath, testgenPath)
 
     const params = {
       TableName: "S3UploadRecords",
@@ -63,13 +78,7 @@ const Home: FC = () => {
     const timeout = 10000; // overall long polling time
     const interval = 5000;
 
-    // check if the given files (algo_path, ...) exist in s3
-    // ...
-    
-    
-    // send the file
-
-    // starts to check if the compiled output is already in the given folder
+    // TODO: check if the given files (algo_path, ...) exist in s3
     const checkPeridodically = async () => {
       const wasmFileUrl = await getUrl(`outputs/${user.username}/${folder_id}/main.wasm`)
       if(wasmFileUrl) {
@@ -90,6 +99,7 @@ const Home: FC = () => {
 
   return (
     <>
+      <NavBar />
       <main>
         <Container style={{marginTop: "7rem"}}>
 
@@ -134,7 +144,6 @@ const Home: FC = () => {
     </>
   )
 }
-
 export default Home
 
 const AlgoList: FC<{setPath: (p: string) => void}> = ({setPath}) => {

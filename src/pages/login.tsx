@@ -1,4 +1,4 @@
-import { withAuthenticator } from "@aws-amplify/ui-react";
+import { useAuthenticator, withAuthenticator } from "@aws-amplify/ui-react";
 import { Authenticator } from '@aws-amplify/ui-react';
 import { Auth } from "aws-amplify";
 import { useRouter } from "next/router";
@@ -17,24 +17,36 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-
-
-const NavigateToMain = () => {
-  const router = useRouter()
-  useEffect(() => {
-    router.push("/")
-  }, [])
-
-  return <>Navigation</>
-}
+import QRCodeCanvas from 'qrcode.react';
+import { Alert, CircularProgress } from "@mui/material";
 
 const LoginPage: FC = () => {
+  const { user, signOut } = useAuthenticator((context) => [context.user]);
+  const { authStatus } = useAuthenticator(context => [context.authStatus]);
+  const router = useRouter()
+
+  const handleLogOut = () => {
+    Auth.signOut().then(res => {
+      console.log(res)
+    }).catch(err => {
+      console.log(err)
+    })
+  }
+
   return (
     <div style={{marginTop: "3rem"}}>
-      {/* <Authenticator>
-        <NavigateToMain />
-      </Authenticator> */}
-      <SignIn />
+      <Container maxWidth="sm">
+        {authStatus === 'unauthenticated' && <SignIn />}
+        {authStatus === 'configuring' && <CircularProgress />}
+        {authStatus === 'authenticated' && user &&
+          <Box sx={{
+            margin: 'auto'
+          }}>
+            <Typography>You are currently logged in as {user.attributes?.name}</Typography>
+            <Button variant='contained' size='small' onClick={handleLogOut}>Log out</Button>
+          </Box>
+        }
+      </Container>
     </div>
   );
 }
@@ -59,15 +71,79 @@ function Copyright(props: any) {
 const theme = createTheme();
 
 export function SignIn() {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+
+  const [loading, setLoading] = React.useState<boolean>(false)
+  const [error, setError] = React.useState<string>('')
+  const [showConfirmationField, setConfirmationFieldShow] = React.useState<boolean>(false)
+  const [str, setStr] = React.useState<string>('')
+  const [user, setUser] = React.useState<any | undefined>()
+  const router = useRouter()
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    // Auth.signIn(data.get('email'), data.get('password'))
-    console.log({
-      email: data.get('email'),
-      password: data.get('password'),
-    });
+    const email = data.get('email')
+    const password = data.get('password')
+    if(!email || !password) {
+      return
+    }
+    if(typeof email == 'string' && typeof password == 'string') {
+      setLoading(true)
+      console.log({
+        email: data.get('email'),
+        password: data.get('password'),
+      });
+      try {
+        const signedUser = await Auth.signIn(email, password)
+        setLoading(false)
+        setUser(signedUser)
+        console.log(signedUser)
+        if(signedUser?.getSignInUserSession()?.getAccessToken().payload['cognito:groups']?.includes('admins')) {
+          Auth.setupTOTP(signedUser).then((code) => {
+            setStr("otpauth://totp/AWSCognito:"+ signedUser.username + "?secret=" + code + "&issuer=google")
+            setConfirmationFieldShow(true)
+          });
+        } else if (signedUser["challengeName"] == "SOFTWARE_TOKEN_MFA") {
+          setConfirmationFieldShow(true)
+        } else {
+          router.push("/")
+        }
+      } catch (e) {
+        if(typeof e == 'string')
+          setError(e)
+        // else if(e.message)
+        //   setError(e.message)
+        console.log(e)
+      }
+    }
   };
+
+
+  const handleMFA = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+
+    const userAnswer = data.get("auth-code")
+    if(typeof userAnswer == 'string') {
+      if(user?.challengeName == "SOFTWARE_TOKEN_MFA") {
+        console.log(user)
+        const loggedUser = await Auth.confirmSignIn(user, userAnswer, "SOFTWARE_TOKEN_MFA")
+        router.push("/")
+      } else {
+        Auth.verifyTotpToken(user, userAnswer)
+          .then(() => {
+            // don't forget to set TOTP as the preferred MFA method
+            console.log('Done')
+            Auth.setPreferredMFA(user, 'TOTP');
+            router.push('/')
+          })
+          .catch((e) => {
+            setError(e.message)
+            console.log(e)
+          });
+        }
+    }
+  }
 
   return (
     <ThemeProvider theme={theme}>
@@ -87,53 +163,81 @@ export function SignIn() {
           <Typography component="h1" variant="h5">
             Sign in
           </Typography>
-          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              autoFocus
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-            />
-            <FormControlLabel
-              control={<Checkbox value="remember" color="primary" />}
-              label="Remember me"
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-            >
-              Sign In
-            </Button>
-            <Grid container>
-              <Grid item xs>
-                <Link href="#" variant="body2">
-                  Forgot password?
-                </Link>
+          {error && <Alert severity="error" sx={{margin: '1rem'}}>{error}</Alert>}
+          {!user && 
+            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="email"
+                label="Email Address"
+                name="email"
+                autoComplete="email"
+                autoFocus
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type="password"
+                id="password"
+                autoComplete="current-password"
+              />
+              <FormControlLabel
+                control={<Checkbox value="remember" color="primary" />}
+                label="Remember me"
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, mb: 2 }}
+                disabled={loading}
+              >
+                {loading && <CircularProgress size={20} sx={{marginRight: '1rem'}} style={{color: '#fff'}}/>} 
+                <span>Sign In</span>
+              </Button>
+              <Grid container>
+                <Grid item xs>
+                  <Link href="#" variant="body2">
+                    Forgot password?
+                  </Link>
+                </Grid>
+                <Grid item>
+                  <Link href="#" variant="body2">
+                    {"Don't have an account? Sign Up"}
+                  </Link>
+                </Grid>
               </Grid>
-              <Grid item>
-                <Link href="#" variant="body2">
-                  {"Don't have an account? Sign Up"}
-                </Link>
-              </Grid>
-            </Grid>
-          </Box>
+            </Box>
+          }
         </Box>
+
+        {str && 
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <QRCodeCanvas value={str} size={175}/>
+          </Box>
+        }
+        {showConfirmationField && 
+          <Box component="form" onSubmit={handleMFA} noValidate sx={{ mt: 1 }}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="auth-code"
+              label="Verification Code"
+              name="auth-code"
+            />
+            <Button type="submit">Send</Button>
+          </Box>
+        }
+
         <Copyright sx={{ mt: 8, mb: 4 }} />
       </Container>
     </ThemeProvider>
