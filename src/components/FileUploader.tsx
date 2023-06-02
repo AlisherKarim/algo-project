@@ -70,6 +70,7 @@ const UploadModal: FC<{
           status: "pending",
           timestamp: new Date().toISOString(),
           userName: user.username,
+          type: "upload"
         },
     };
       try {
