@@ -71,7 +71,7 @@ const Home: FC = () => {
 
     // starts to check if the compiled output is already in the given folder
     const checkPeridodically = async () => {
-      const wasmFileUrl = await getUrl(`${user.username}/${folder_id}/main.wasm`)
+      const wasmFileUrl = await getUrl(`outputs/${user.username}/${folder_id}/main.wasm`)
       if(wasmFileUrl) {
         setShow(true)
         setWasmUrl(wasmFileUrl)
