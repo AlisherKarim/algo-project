@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { NavBar } from '@/components/Navbar';
 import { useRouter } from 'next/router';
+import { folder } from 'jszip';
 
 const Home: FC = () => {
   const { user } = useAuthenticator((context) => [context.user]);
@@ -44,21 +45,15 @@ const Home: FC = () => {
     if(!algoPath || !testgenPath)
       return
     // create uuid and send the file to the dynamo db
-    const folder_id = uuidv4()
-
-    console.log(mainPath, algoPath, testgenPath)
-    // after successful upload, create a record on "S3UploadRecords"
-
-    // algoKey: 'public/public_folder/algorithms/bubble',
-    // testgenKey: 'public/public_folder/test_generaters/testgen1'
     console.log(algoPath, testgenPath)
+    const folder_id = uuidv4()
 
     const params = {
       TableName: "S3UploadRecords",
       Item: {
         uploadId: uuidv4(),
-        algoKey: 'public/public_folder/algorithms/bubble',
-        testgenKey: 'public/public_folder/test_generaters/testgen1',
+        algoKey: `public/${algoPath.slice(0, -1)}`,
+        testgenKey: `public/${testgenPath.slice(0, -1)}`,
         status: "pending",
         timestamp: new Date().toISOString(),
         userName: user.username,
@@ -147,34 +142,46 @@ const Home: FC = () => {
 export default Home
 
 const AlgoList: FC<{setPath: (p: string) => void}> = ({setPath}) => {
-  // TODO: fetch all the available algos from storage
+  const [loading, setLoading] = useState<boolean>(true)
+
+  interface AlgoFolder {
+    name: string,
+    key: string
+  }
 
   const [chosenIndex, setIndex] = useState<number>(-1)
+  const [algos, setAlgos] = useState<AlgoFolder[]>([])
 
-  const algos = [
-    {
-      name: 'Bubble Sort',
-      description: 'Sorts the given array of numbers in quadratic time',
-      key: 'algorithms/bubble'
-    },
-    {
-      name: 'Merge Sort',
-      description: 'Sorts the given array of numbers in nlogn time',
-      key: 'algorithms/merge'
-    },
-  ]
+  useEffect(() => {
+    Storage.list('public_folder/algorithms').then(response => {
+      let folders = new Set<AlgoFolder>();
+      response.results.forEach((res: any) => {
+        console.log(res.key.split('/'))
+        if(res.key.split('/').length == 4 && res.key.split('/')[3] == '') {
+          console.log(res.key.split('/')) 
+          folders.add({name: res.key.split('/')[2], key: res.key});
+        }
+      })
+      const temp: AlgoFolder[] = []
+      folders.forEach(f => temp.push(f))
+      setAlgos(temp)
+      setLoading(false)
+    }).catch(err => {
+      console.error(err)
+    })
+  }, [])
 
   return (
     <Stack spacing={2} sx={{marginTop: '2rem'}}>
-
+      {loading && <CircularProgress size={30} sx={{marginTop: '1rem'}}/>} 
       {algos.map((algo, ind) =>  (
         <Card key={algo.key}>
           <CardContent>
             <Typography sx={{ mb: 1.5 }} color="text.secondary">
-              {algo.name}
+              {algo.name.toUpperCase()}
             </Typography>
             <Typography variant="body2">
-              {algo.description}
+              {'Some description (TODO)'}
             </Typography>
           </CardContent>
           <CardActions>
@@ -202,37 +209,49 @@ const AlgoList: FC<{setPath: (p: string) => void}> = ({setPath}) => {
 
 
 const TestGenList: FC<{setPath: (p: string) => void}> = ({setPath}) => {
-
+  const [loading, setLoading] = useState<boolean>(true)
   const [chosenIndex, setIndex] = useState<number>(-1)
-  const generators = [
-    {
-      name: 'Test Gen 1',
-      description: 'Creates sample array of size n = 100, 1000, 100000.',
-      extra: 'a[i] <= 1e6',
-      key: 'test_generaters/testgen1'
-    },
-    {
-      name: 'Test Gen 2',
-      description: 'Creates sample array of size n = 100, 1000, 100000.',
-      extra: 'a[i] <= 1e9',
-      key: 'test_generaters/testgen2'
-    }
-  ]
+  interface TestGenFolder {
+    name: string,
+    key: string
+  }
+
+  const [generators, setGenerators] = useState<TestGenFolder[]>([])
+
+  useEffect(() => {
+    Storage.list('public_folder/test_generaters').then(response => {
+      let folders = new Set<TestGenFolder>();
+      response.results.forEach((res: any) => {
+        console.log(res.key.split('/'))
+        if(res.key.split('/').length == 4 && res.key.split('/')[3] == '') {
+          console.log(res.key.split('/')) 
+          folders.add({name: res.key.split('/')[2], key: res.key});
+        }
+      })
+      const temp: TestGenFolder[] = []
+      folders.forEach(f => temp.push(f))
+      setGenerators(temp)
+      setLoading(false)
+    }).catch(err => {
+      console.error(err)
+    })
+  }, [])
 
   return (
     <Stack spacing={2} sx={{marginTop: '2rem'}}>
+      {loading && <CircularProgress size={30} sx={{marginTop: '1rem'}}/>} 
       {generators.map((gen, ind) => (
         <Card key={gen.key}>
           <CardContent>
             <Typography sx={{ mb: 1.5 }} color="text.secondary">
-              {gen.name}
+              {gen.name.toUpperCase()}
             </Typography>
             <Typography variant="body2">
-              {gen.description}
+              {'Lorem ipsum (TODO)'}
             </Typography>
-            <Typography variant='body2'>
+            {/* <Typography variant='body2'>
               <code>{gen.extra}</code>
-            </Typography>
+            </Typography> */}
           </CardContent>
           <CardActions>
             <Button
