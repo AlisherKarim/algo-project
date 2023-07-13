@@ -1,31 +1,28 @@
 import { FileViewer } from "@/components/FileViewer"
 import { FolderView } from "@/components/FolderView"
-import { useAuthenticator, withAuthenticator } from "@aws-amplify/ui-react"
-import React, { useEffect, useState } from "react"
+import React, { FC, useState } from "react"
 import Splitter, { SplitDirection } from '@devbookhq/splitter'
 import { TransactionList } from "@/components/TransactionList"
 import styles from '@/styles/Home.module.css'
 import { NavBar } from "@/components/Navbar"
-import { Auth } from "aws-amplify"
-import { useRouter } from "next/router"
+import { withSSRContext } from "aws-amplify"
+import { Container } from "@mui/material"
+import Link from "next/link"
 
-const Dashboard = () => {
-  const { user } = useAuthenticator((context) => [context.user]);
-  const router = useRouter()
-
-  useEffect(() => {
-    console.log(user)
-    Auth.currentAuthenticatedUser().then(user => {
-      console.log(user)
-    }).catch(err => {
-      console.log(err)
-      router.push('/login')
-    })
-  }, [])
+const Dashboard: FC<{authenticated: boolean, username: string}> = ({authenticated, username}) => {
+  if(!authenticated) {
+    return (
+      <Container>
+        <div style={{display: "flex", gap: "1rem", marginTop: "3rem", justifyContent: "space-between"}}>
+          Please, sign in first to contribute
+        </div>
+        <Link href="/login">Login</Link>
+      </Container>
+    )
+  }
 
   const [currentFile, setCurrentFile] = useState<string>()
   const [keyPath, setKeyPath] = useState<string>()
-
   return <>
     <NavBar />
     <div style={{display: 'flex', marginTop: '0.5rem', height: '90vh'}} >
@@ -42,6 +39,23 @@ const Dashboard = () => {
       </Splitter>
     </div>
   </>
+}
+
+export async function getServerSideProps(context: { req?: any; res: any; modules?: any[] | undefined; } | undefined) {
+  const { Auth } = withSSRContext(context)
+  try {
+    const user = await Auth.currentAuthenticatedUser()
+    return {
+      props: {
+        authenticated: true,
+        username: user.username
+      }
+    }
+  } catch (err) {
+    context?.res.writeHead(302, { Location: '/login' })
+    context?.res.end()
+  }
+  return {props: {}}
 }
 
 export default Dashboard

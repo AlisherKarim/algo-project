@@ -16,6 +16,7 @@ import { useRouter } from 'next/router';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { Chip } from '@mui/material';
 import { Auth } from 'aws-amplify';
+import Link from 'next/link';
 
 const pages = [
   {
@@ -88,6 +89,7 @@ function stringAvatar(name: string) {
 }
 
 export const NavBar: React.FC = () => {
+  const { route } = useAuthenticator((context) => [context.route]);
   const router = useRouter()
   const {user, signOut} = useAuthenticator((context) => [context.user])
 
@@ -119,7 +121,7 @@ export const NavBar: React.FC = () => {
   };
 
   return (
-    <AppBar position="static" color='primary'>
+    <AppBar position="static" color='transparent'>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           <CodeIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
@@ -201,7 +203,7 @@ export const NavBar: React.FC = () => {
               <Button
                 key={page.name}
                 onClick={() => router.push(`${page.path}`)}
-                sx={{ my: 2, color: 'white', display: 'block' }}
+                sx={{ my: 2, color: 'inherit', display: 'block' }}
               >
                 {/* <Link href={`/${page}`}> */}
                   {page.name}
@@ -211,7 +213,7 @@ export const NavBar: React.FC = () => {
           </Box>
 
           <Box sx={{ flexGrow: 0 }}>
-            {user ? 
+            {route == 'authenticated' ? 
               <>            
                 <Tooltip title="Open settings">
                   <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
@@ -247,10 +249,12 @@ export const NavBar: React.FC = () => {
                 </Menu>
               </>
               :
-              <Button color="inherit" href='/login'>Login</Button>
+              <Link href="/login" passHref style={{color: 'rgba(0, 0, 0, 0.87)'}}>
+                <Button color="inherit">Login</Button>
+              </Link>
             }
           </Box>
-          {user?.getSignInUserSession()?.getAccessToken().payload['cognito:groups']?.includes('admins') && <Chip label="Admin" color="warning" sx={{marginLeft: '1rem'}}/>}
+          {route == 'authenticated' && user?.getSignInUserSession()?.getAccessToken().payload['cognito:groups']?.includes('admins') && <Chip label="Admin" sx={{marginLeft: '1rem'}}/>}
         </Toolbar>
       </Container>
     </AppBar>

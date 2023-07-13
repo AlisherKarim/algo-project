@@ -2,14 +2,13 @@ import { useAuthenticator } from '@aws-amplify/ui-react'
 import { v4 as uuidv4 } from "uuid";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { monokaiSublime } from "react-syntax-highlighter/dist/cjs/styles/hljs";
-import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, Link, Modal, Snackbar, Typography } from "@mui/material"
+import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, InputLabel, Link, MenuItem, Modal, Select, Snackbar, Typography } from "@mui/material"
 import FilePresentIcon from '@mui/icons-material/FilePresent';
 import CloseIcon from '@mui/icons-material/Close';
 import JSZip from 'jszip'
-import React, { FC, useState } from "react"
+import React, { FC, useEffect, useState } from "react"
 
-import { ddbDocClient, PutCommand } from "../libs/ddbDocClient"; 
-import { StorageManager } from '@aws-amplify/ui-react-storage';
+import { ddbDocClient, PutCommand, ScanCommand } from "../libs/ddbDocClient"; 
 
 const UploadModal: FC<{
     open: boolean,
@@ -28,6 +27,8 @@ const UploadModal: FC<{
     }) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [loading, setLoading] = useState<boolean>(false)
+  const [componentType, setComponentType] = useState<string>('10')
+  const [componentTypes, setComponentTypes] = useState<any[]>([])
 
   const style = {
     position: 'absolute' as 'absolute',
@@ -44,6 +45,28 @@ const UploadModal: FC<{
 
   const [error, setError] = useState<string>()
 
+  useEffect(() => {
+    const params = {
+      TableName: "Components",
+    };
+    try {
+      ddbDocClient.send(new ScanCommand(params))
+        .then(output => {
+          if(output.Items) {
+            setComponentTypes(output.Items)
+            setComponentType(output.Items[0].group_name)
+          }
+        })
+        .catch(err => console.log(err));
+    } catch (err: any) {
+      console.error("Error", err.stack);
+    }
+  }, [])
+
+  const handleComponentType = (e: any) => {
+    setComponentType(e.target.value)
+  }
+
   const handleSubmit = async () => {
     if (!file || !user.username) 
       return
@@ -57,10 +80,6 @@ const UploadModal: FC<{
       body: data,
       mode: 'no-cors',
     }).then(async res => {
-      setLoading(false); 
-      handleClose()
-      handleSnackbar(true)
-
       // after successful upload, create a record on "S3UploadRecords"
       const params = {
         TableName: "S3UploadRecords",
@@ -72,7 +91,7 @@ const UploadModal: FC<{
           userName: user.username,
           type: "upload"
         },
-    };
+      };
       try {
         const data = await ddbDocClient.send(new PutCommand(params));
         console.log("Success - item added or updated", data);
@@ -80,6 +99,18 @@ const UploadModal: FC<{
         console.error("Error", err.stack);
       }
 
+      const addToComponentParams = {
+        TableName: 'Components',
+        Item: {
+          name: file.name.replace('.zip', ''),
+          key: `${storagePath}/${file.name}`.replace('.zip', ''),
+        }
+      }
+      await ddbDocClient.send(new PutCommand(addToComponentParams))
+      
+      setLoading(false); 
+      handleClose()
+      handleSnackbar(true)
     }).catch(err => setError("Something went wrong"))
   }
 
@@ -106,6 +137,27 @@ const UploadModal: FC<{
         }}>
           {manifest}
         </SyntaxHighlighter>
+
+        {componentTypes.length > 0 && 
+          <div>
+            <InputLabel id="demo-simple-select-label">Age</InputLabel>
+            <Select
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
+              value={componentType}
+              label="Component Type"
+              onChange={handleComponentType}
+              sx={{
+                margin: '1rem 1rem 1rem 0'
+              }}
+            >
+              {componentTypes.map((cType) => (
+                <MenuItem value={cType.group_name} key={cType.group_name}>{cType.group_name}</MenuItem>
+              ))}
+            </Select>
+          </div>
+        }
+
         <Button variant='outlined' color='success' onClick={handleSubmit} disabled={loading} > 
           {loading && <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>} 
           <span>Approve and submit</span>
@@ -118,7 +170,7 @@ const UploadModal: FC<{
   )
 }
 
-export const FileUploader: FC<{username: string, folder: string, title: string, subtitle: string}> = ({username, folder, title, subtitle}) => {
+export const FileUploader: FC<{username: string, title: string, subtitle: string}> = ({username, title, subtitle}) => {
   const [file, setFile] = useState<File>()
   const [manifest, setManifest] = useState<string | null>(null)
   const [open, setOpen] = useState<boolean>(false)
@@ -136,7 +188,7 @@ export const FileUploader: FC<{username: string, folder: string, title: string, 
       const files = zip.file(/.*/);
       // Do something with the files, such as logging their names
       files.forEach(async (file) => {
-        if(file.name === 'manifest.yml')
+        if(file.name.endsWith('BubbleSortAlgm.yml'))
           setManifest(await file.async("text"))
       });
     };
@@ -179,7 +231,7 @@ export const FileUploader: FC<{username: string, folder: string, title: string, 
         message="File successfully uploaded"
         action={action}
       />
-      <UploadModal open={open} handleClose={handleClose} handleSnackbar={setSOpen} file={file} storagePath={`public/${username}/${folder}`} manifest={manifest ?? 'Loading...'}/>
+      <UploadModal open={open} handleClose={handleClose} handleSnackbar={setSOpen} file={file} storagePath={`public/components`} manifest={manifest ?? 'Loading...'}/>
       <Card style={{ width: '18rem' }} variant="outlined">
         <CardContent>
           <div style={{height: "100px"}}>
@@ -194,19 +246,6 @@ export const FileUploader: FC<{username: string, folder: string, title: string, 
               <input hidden accept=".zip" multiple type="file" onChange={handleInput}/>
             </Button>
           </div>
-          {/* <Form.Group controlId="formFile" className="mb-3 mt-3" style={{bottom: "5rem"}}>
-            <Form.Control type="file" accept=".zip" size="sm" onInput={handleFileInput} />
-          </Form.Group> */}
-          {/* <StorageManager
-            acceptedFileTypes={['.zip']}
-            accessLevel="public"
-            maxFileCount={1}
-            isResumable
-            path={`${username}/${folder}/`}
-            onUploadStart={(e) => {
-              console.log('uploading', e.key)
-            }}
-          /> */}
         </CardContent>
       </Card>
     </>

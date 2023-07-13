@@ -16,11 +16,12 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void, ke
 
   const processStorageList = (response: any) => {
     console.log(response)
-    const folder = response.results.map((res: any) => {return {...res, path: res.key.split('/').splice(3).join('/')}})
+    const folder = response.results.map((res: any) => {return {...res, path: res.key.split('/').splice(2).join('/')}})
     console.log(folder)
 
     const filesystem = {__id: 'root', __name: 'root'};
     const add = (source: string, target: { [x: string]: any; }, item: any) => {
+      console.log(source)
       const elements = source.split('/');
       const element = elements.shift();
       if (!element) return; // blank
@@ -41,6 +42,7 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void, ke
       setLoading(true)
       Storage.list(keyPath)
         .then((response) => {
+          console.log(response)
           setData(processStorageList(response))
           setLoading(false)
         })
@@ -49,7 +51,6 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void, ke
   }, [keyPath])
 
   const handleFileOpen = (data: any) => {
-    
     Storage.get(data.key, {download: true}).then((result) => {
       const reader = new FileReader();
 

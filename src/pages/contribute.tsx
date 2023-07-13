@@ -1,60 +1,54 @@
 import { FileUploader } from "@/components/FileUploader";
 import { NavBar } from "@/components/Navbar";
-import { SubmitModal } from "@/components/SubmitModal";
-import { useAuthenticator, withAuthenticator } from "@aws-amplify/ui-react";
-import { Button, Container } from "@mui/material";
-import { Auth } from "aws-amplify";
-import { useRouter } from "next/router";
-import { FC, useEffect, useState } from "react";
-import { FormEvent } from "react";
+import { Container } from "@mui/material";
+import { withSSRContext } from "aws-amplify";
+import Link from "next/link";
+import { FC } from "react";
 
-const ContributePage: FC = () => {
-  const { user } = useAuthenticator((context) => [context.user]);
-  const router = useRouter()
-
-  useEffect(() => {
-    console.log(user)
-    Auth.currentAuthenticatedUser().then(user => {
-      console.log(user)
-    }).catch(err => {
-      console.log(err)
-      router.push('/login')
-    })
-  }, [])
-
-  const [file, setFile] = useState<File>()
-  const [show, setShow] = useState<boolean>(false)
-
-  // const { user, signOut } = useAuthenticator((context) => [context.user])
-
-  const handleFileInput = (event: FormEvent) => {
-    setFile((event.target as HTMLInputElement)?.files?.[0])
-  }
-
-  const handleSubmitButton = () => {
-    setShow(true)
+const ContributePage: FC<{authenticated: boolean, username: string}> = ({authenticated, username}) => {
+  if(!authenticated) {
+    return (
+      <>
+        <NavBar />
+        <Container>
+          <div style={{display: "flex", gap: "1rem", marginTop: "3rem", justifyContent: "space-between"}}>
+            Please, sign in first to contribute
+          </div>
+          <Link href="/login">Login</Link>
+        </Container>
+      </>
+    )
   }
 
   return (
     <>
       <NavBar />
       <Container>
-        {user.username &&
+        {authenticated && username && 
           <div style={{display: "flex", gap: "1rem", marginTop: "3rem", justifyContent: "space-between"}}>
-
-            {/* <FileUploader username={user.username} folder={'data_structures'} title="Data Strucure" subtitle="Upload your data structure code"/> */}
-            <FileUploader username={user.username} folder={'algorithms'} title="Algorithm" subtitle="Upload your algorithm code"/>
-            <FileUploader username={user.username} folder={'problem_generators'} title="Problem generator" subtitle="Upload your problem generator code"/>
-            <FileUploader username={user.username} folder={'data_sets'} title="Data Set" subtitle="Upload your data set"/>
-
+            <FileUploader username={username} title="Component Upload" subtitle="Upload your component code here"/>
           </div>
         }
-        <div style={{marginTop: "3rem", display: "flex", justifyContent: "flex-end"}}>
-          <Button onClick={handleSubmitButton}>Submit</Button>
-        </div>
       </Container>
     </>
   )
+}
+
+export async function getServerSideProps(context: { req?: any; res: any; modules?: any[] | undefined; } | undefined) {
+  const { Auth } = withSSRContext(context)
+  try {
+    const user = await Auth.currentAuthenticatedUser()
+    return {
+      props: {
+        authenticated: true,
+        username: user.username
+      }
+    }
+  } catch (err) {
+    context?.res.writeHead(302, { Location: '/login' })
+    context?.res.end()
+  }
+  return {props: {}}
 }
 
 export default ContributePage;
