@@ -10,6 +10,8 @@ import { Container } from "@mui/material"
 import Link from "next/link"
 
 const Dashboard: FC<{authenticated: boolean, username: string}> = ({authenticated, username}) => {
+  const [currentFile, setCurrentFile] = useState<string>()
+  const [keyPath, setKeyPath] = useState<string>()
   if(!authenticated) {
     return (
       <Container>
@@ -20,9 +22,6 @@ const Dashboard: FC<{authenticated: boolean, username: string}> = ({authenticate
       </Container>
     )
   }
-
-  const [currentFile, setCurrentFile] = useState<string>()
-  const [keyPath, setKeyPath] = useState<string>()
   return <>
     <NavBar />
     <div style={{display: 'flex', marginTop: '0.5rem', height: '90vh'}} >

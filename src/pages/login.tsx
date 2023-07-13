@@ -24,6 +24,12 @@ const LoginPage: FC<{authenticated: boolean, username: string, name: string}> = 
     })
   }
 
+  useEffect(() => {
+    if (!authenticated && route === 'authenticated') {
+      router.push('/')
+    }
+  }, [route]);
+
   if(authenticated) {
     return (
       <>
@@ -42,12 +48,6 @@ const LoginPage: FC<{authenticated: boolean, username: string, name: string}> = 
       </>
     )
   }
-
-  useEffect(() => {
-    if (route === 'authenticated') {
-      router.push('/')
-    }
-  }, [route]);
 
   return (
     <>

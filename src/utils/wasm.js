@@ -362,8 +362,8 @@ function convertJsFunctionToWasm(func, sig) {
 
    // We can compile this wasm module synchronously because it is very small.
   // This accepts an import (at "e.f"), that it reroutes to an export (at "f")
-  var module = new WebAssembly.Module(bytes);
-  var instance = new WebAssembly.Instance(module, {
+  var customModule = new WebAssembly.Module(bytes);
+  var instance = new WebAssembly.Instance(customModule, {
     'e': {
       'f': func
     }
