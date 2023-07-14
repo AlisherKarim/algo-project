@@ -9,6 +9,7 @@ import JSZip from 'jszip'
 import React, { FC, useEffect, useState } from "react"
 
 import { ddbDocClient, PutCommand, ScanCommand } from "../libs/ddbDocClient"; 
+import MultipleSelectChip from './MultipleSelect';
 
 const UploadModal: FC<{
     open: boolean,
@@ -27,8 +28,8 @@ const UploadModal: FC<{
     }) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [loading, setLoading] = useState<boolean>(false)
-  const [componentType, setComponentType] = useState<string>('10')
-  const [componentTypes, setComponentTypes] = useState<any[]>([])
+  const [chosenTypes, setChosenTypes] = useState<string[]>([])
+  const [componentTypes, setComponentTypes] = useState<string[]>(['SortingAlgm', 'SortingAlgm1', 'SortingAlgm2', 'RandomVectorGenerator'])
 
   const style = {
     position: 'absolute' as 'absolute',
@@ -49,27 +50,14 @@ const UploadModal: FC<{
     const params = {
       TableName: "Components",
     };
-    try {
-      ddbDocClient.send(new ScanCommand(params))
-        .then(output => {
-          if(output.Items) {
-            setComponentTypes(output.Items)
-            setComponentType(output.Items[0].group_name)
-          }
-        })
-        .catch(err => console.log(err));
-    } catch (err: any) {
-      console.error("Error", err.stack);
-    }
   }, [])
-
-  const handleComponentType = (e: any) => {
-    setComponentType(e.target.value)
-  }
 
   const handleSubmit = async () => {
     if (!file || !user.username) 
       return
+
+    console.log(chosenTypes, storagePath)
+    
     setLoading(true)
     var data = new FormData()
     data.append('path', storagePath)
@@ -100,10 +88,12 @@ const UploadModal: FC<{
       }
 
       const addToComponentParams = {
-        TableName: 'Components',
+        TableName: 'cpp_components',
         Item: {
           name: file.name.replace('.zip', ''),
           key: `${storagePath}/${file.name}`.replace('.zip', ''),
+          belongs_to: new Set(chosenTypes),
+          parameterTypes: new Set([''])
         }
       }
       await ddbDocClient.send(new PutCommand(addToComponentParams))
@@ -140,21 +130,8 @@ const UploadModal: FC<{
 
         {componentTypes.length > 0 && 
           <div>
-            <InputLabel id="demo-simple-select-label">Age</InputLabel>
-            <Select
-              labelId="demo-simple-select-label"
-              id="demo-simple-select"
-              value={componentType}
-              label="Component Type"
-              onChange={handleComponentType}
-              sx={{
-                margin: '1rem 1rem 1rem 0'
-              }}
-            >
-              {componentTypes.map((cType) => (
-                <MenuItem value={cType.group_name} key={cType.group_name}>{cType.group_name}</MenuItem>
-              ))}
-            </Select>
+            <InputLabel id="demo-simple-select-label">Belongs to</InputLabel>
+            <MultipleSelectChip names={componentTypes} setChosenNames={setChosenTypes}/>
           </div>
         }
 
@@ -188,7 +165,7 @@ export const FileUploader: FC<{username: string, title: string, subtitle: string
       const files = zip.file(/.*/);
       // Do something with the files, such as logging their names
       files.forEach(async (file) => {
-        if(file.name.endsWith('BubbleSortAlgm.yml'))
+        if(!file.name.startsWith('__MACOSX') && file.name.endsWith('BubbleSortAlgm.yml'))
           setManifest(await file.async("text"))
       });
     };

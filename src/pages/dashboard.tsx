@@ -14,12 +14,15 @@ const Dashboard: FC<{authenticated: boolean, username: string}> = ({authenticate
   const [keyPath, setKeyPath] = useState<string>()
   if(!authenticated) {
     return (
-      <Container>
-        <div style={{display: "flex", gap: "1rem", marginTop: "3rem", justifyContent: "space-between"}}>
-          Please, sign in first to contribute
-        </div>
-        <Link href="/login">Login</Link>
-      </Container>
+      <>
+        <NavBar />
+        <Container>
+          <div style={{display: "flex", gap: "1rem", marginTop: "3rem", justifyContent: "space-between"}}>
+            Please, sign in first to see your dashboard
+          </div>
+          <Link href="/login">Login</Link>
+        </Container>
+      </>
     )
   }
   return <>

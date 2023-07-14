@@ -62,7 +62,7 @@ const Demo: FC = () => {
           <Grid container spacing={4}>
             <Grid item>
               <Typography variant="h5" component="h5">
-                Main
+                Choose main component
               </Typography>
               <MainList />
             </Grid>
@@ -167,7 +167,8 @@ const MainBlock: FC<{wasmUrl: string}> = ({wasmUrl}) => {
 
   return (
     <Box sx={{marginTop: '2rem'}}>
-      <Button variant='contained' color='success' disabled={loading} onClick={handleRun} >
+      <Divider />
+      <Button variant='contained' color='success' disabled={loading} onClick={handleRun} sx={{marginBottom: '1rem', marginTop: '0.5rem'}} >
         {loading && <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>} 
         <span>Run</span>
       </Button>
