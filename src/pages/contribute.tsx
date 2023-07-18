@@ -1,23 +1,13 @@
 import { FileUploader } from "@/components/FileUploader";
 import { NavBar } from "@/components/Navbar";
+import Unauthorized from "@/components/Unauthorized";
 import { Container } from "@mui/material";
 import { withSSRContext } from "aws-amplify";
-import Link from "next/link";
 import { FC } from "react";
 
 const ContributePage: FC<{authenticated: boolean, username: string}> = ({authenticated, username}) => {
   if(!authenticated) {
-    return (
-      <>
-        <NavBar />
-        <Container>
-          <div style={{display: "flex", gap: "1rem", marginTop: "3rem", justifyContent: "space-between"}}>
-            Please, sign in first to contribute
-          </div>
-          <Link href="/login">Login</Link>
-        </Container>
-      </>
-    )
+    return <Unauthorized />
   }
 
   return (

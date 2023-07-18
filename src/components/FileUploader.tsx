@@ -9,7 +9,6 @@ import JSZip from 'jszip'
 import React, { FC, useEffect, useState } from "react"
 
 import { ddbDocClient, PutCommand, ScanCommand } from "../libs/ddbDocClient"; 
-import MultipleSelectChip from './MultipleSelect';
 
 const UploadModal: FC<{
     open: boolean,
@@ -28,8 +27,6 @@ const UploadModal: FC<{
     }) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [loading, setLoading] = useState<boolean>(false)
-  const [chosenTypes, setChosenTypes] = useState<string[]>([])
-  const [componentTypes, setComponentTypes] = useState<string[]>(['SortingAlgm', 'SortingAlgm1', 'SortingAlgm2', 'RandomVectorGenerator'])
 
   const style = {
     position: 'absolute' as 'absolute',
@@ -55,8 +52,6 @@ const UploadModal: FC<{
   const handleSubmit = async () => {
     if (!file || !user.username) 
       return
-
-    console.log(chosenTypes, storagePath)
     
     setLoading(true)
     var data = new FormData()
@@ -92,8 +87,7 @@ const UploadModal: FC<{
         Item: {
           name: file.name.replace('.zip', ''),
           key: `${storagePath}/${file.name}`.replace('.zip', ''),
-          belongs_to: new Set(chosenTypes),
-          parameterTypes: new Set([''])
+          parameter_typenames: new Set([''])
         }
       }
       await ddbDocClient.send(new PutCommand(addToComponentParams))
@@ -127,13 +121,6 @@ const UploadModal: FC<{
         }}>
           {manifest}
         </SyntaxHighlighter>
-
-        {componentTypes.length > 0 && 
-          <div>
-            <InputLabel id="demo-simple-select-label">Belongs to</InputLabel>
-            <MultipleSelectChip names={componentTypes} setChosenNames={setChosenTypes}/>
-          </div>
-        }
 
         <Button variant='outlined' color='success' onClick={handleSubmit} disabled={loading} > 
           {loading && <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>} 

@@ -10,7 +10,7 @@ export default function Document() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <body style={{margin: 0}}>
+      <body style={{margin: 0, backgroundColor: '#f5f5f5'}}>
           <Main />
           <NextScript />
       </body>
