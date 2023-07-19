@@ -6,12 +6,15 @@ import { TransactionList } from "@/components/TransactionList"
 import styles from '@/styles/Home.module.css'
 import { NavBar } from "@/components/Navbar"
 import { withSSRContext } from "aws-amplify"
-import { Container } from "@mui/material"
+import { Box, Button, ButtonGroup, Container, Paper } from "@mui/material"
+import DeleteIcon from '@mui/icons-material/Delete';
 import Link from "next/link"
+import { FileUploader } from "@/components/FileUploader"
 
 const Dashboard: FC<{authenticated: boolean, username: string}> = ({authenticated, username}) => {
   const [currentFile, setCurrentFile] = useState<string>()
   const [keyPath, setKeyPath] = useState<string>()
+  const [isYaml, setIsYaml] = useState<boolean>(false)
   if(!authenticated) {
     return (
       <>
@@ -27,7 +30,13 @@ const Dashboard: FC<{authenticated: boolean, username: string}> = ({authenticate
   }
   return <>
     <NavBar />
-    <div style={{display: 'flex', marginTop: '0.5rem', height: '90vh'}} >
+    <Paper variant="outlined">
+      <Box sx={{m: '1rem', display: 'flex', gap: '1rem'}}>
+        <FileUploader />
+        <Button startIcon={<DeleteIcon />} disabled variant='contained'>Delete</Button>
+      </Box>
+    </Paper>
+    <Paper style={{display: 'flex', height: '82vh'}} variant="outlined" >
       <Splitter 
         direction={SplitDirection.Horizontal}
         initialSizes={[20, 20, 60]}
@@ -36,10 +45,10 @@ const Dashboard: FC<{authenticated: boolean, username: string}> = ({authenticate
         minWidths={[200, 200, 200]}
       >
         <TransactionList setKeyPath={setKeyPath}/>
-        <FolderView setCurrentFile={setCurrentFile} keyPath={keyPath}/>
-        <FileViewer currentFile={currentFile} />
+        <FolderView setCurrentFile={setCurrentFile} keyPath={keyPath} setIsYaml={setIsYaml}/>
+        <FileViewer currentFile={currentFile} isYaml={isYaml} />
       </Splitter>
-    </div>
+    </Paper>
   </>
 }
 

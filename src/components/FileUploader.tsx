@@ -2,15 +2,16 @@ import { useAuthenticator } from '@aws-amplify/ui-react'
 import { v4 as uuidv4 } from "uuid";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { monokaiSublime } from "react-syntax-highlighter/dist/cjs/styles/hljs";
-import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, InputLabel, Link, MenuItem, Modal, Select, Snackbar, Typography } from "@mui/material"
+import { Alert, Box, Button, CircularProgress, IconButton, Link, Modal, Snackbar, Typography } from "@mui/material"
 import FilePresentIcon from '@mui/icons-material/FilePresent';
 import CloseIcon from '@mui/icons-material/Close';
+import UploadIcon from '@mui/icons-material/Upload';
 import JSZip from 'jszip'
 import React, { FC, useEffect, useState } from "react"
 
 import { ddbDocClient, PutCommand, ScanCommand } from "../libs/ddbDocClient"; 
 
-const UploadModal: FC<{
+export const UploadModal: FC<{
     open: boolean,
     handleClose: () => void,
     handleSnackbar: (v: boolean) => void,
@@ -43,12 +44,6 @@ const UploadModal: FC<{
 
   const [error, setError] = useState<string>()
 
-  useEffect(() => {
-    const params = {
-      TableName: "Components",
-    };
-  }, [])
-
   const handleSubmit = async () => {
     if (!file || !user.username) 
       return
@@ -56,14 +51,14 @@ const UploadModal: FC<{
     setLoading(true)
     var data = new FormData()
     data.append('path', storagePath)
+    data.append('component_name', 'Run Sorting Algorithm')
     data.append('file', file)
-    // data.append('username', user.username)
+    data.append('username', user.username)
     fetch("https://1c2kn07ik5.execute-api.us-east-1.amazonaws.com/unzipAndUpload", {
       method: 'POST',
       body: data,
       mode: 'no-cors',
     }).then(async res => {
-      // after successful upload, create a record on "S3UploadRecords"
       const params = {
         TableName: "S3UploadRecords",
         Item: {
@@ -81,18 +76,8 @@ const UploadModal: FC<{
       } catch (err: any) {
         console.error("Error", err.stack);
       }
-
-      const addToComponentParams = {
-        TableName: 'cpp_components',
-        Item: {
-          name: file.name.replace('.zip', ''),
-          key: `${storagePath}/${file.name}`.replace('.zip', ''),
-          parameter_typenames: new Set([''])
-        }
-      }
-      await ddbDocClient.send(new PutCommand(addToComponentParams))
       
-      setLoading(false); 
+      setLoading(false);
       handleClose()
       handleSnackbar(true)
     }).catch(err => setError("Something went wrong"))
@@ -134,7 +119,7 @@ const UploadModal: FC<{
   )
 }
 
-export const FileUploader: FC<{username: string, title: string, subtitle: string}> = ({username, title, subtitle}) => {
+export const FileUploader: FC = () => {
   const [file, setFile] = useState<File>()
   const [manifest, setManifest] = useState<string | null>(null)
   const [open, setOpen] = useState<boolean>(false)
@@ -152,7 +137,7 @@ export const FileUploader: FC<{username: string, title: string, subtitle: string
       const files = zip.file(/.*/);
       // Do something with the files, such as logging their names
       files.forEach(async (file) => {
-        if(!file.name.startsWith('__MACOSX') && file.name.endsWith('BubbleSortAlgm.yml'))
+        if(!file.name.startsWith('__MACOSX') && file.name.endsWith('.yml'))
           setManifest(await file.async("text"))
       });
     };
@@ -196,22 +181,10 @@ export const FileUploader: FC<{username: string, title: string, subtitle: string
         action={action}
       />
       <UploadModal open={open} handleClose={handleClose} handleSnackbar={setSOpen} file={file} storagePath={`public/components`} manifest={manifest ?? 'Loading...'}/>
-      <Card style={{ width: '18rem' }} variant="outlined">
-        <CardContent>
-          <div style={{height: "100px"}}>
-            <Typography sx={{ fontSize: 20 }} color="text.secondary" gutterBottom>
-              {title}
-            </Typography>
-            <Typography variant="body2" component="div">{subtitle}</Typography>
-          </div>
-          <div>
-            <Button variant="contained" component="label">
-              Upload
-              <input hidden accept=".zip" multiple type="file" onChange={handleInput}/>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <Button variant="contained" component="label" startIcon={<UploadIcon />}>
+        Upload
+        <input hidden accept=".zip" multiple type="file" onChange={handleInput}/>
+      </Button>
     </>
   )
 }

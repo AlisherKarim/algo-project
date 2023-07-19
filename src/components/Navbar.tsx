@@ -28,10 +28,6 @@ const pages = [
     name: 'Components'
   },
   {
-    path: '/contribute',
-    name: 'Contribute'
-  },
-  {
     path: '/dashboard',
     name: 'Dashboard'
   },
@@ -39,10 +35,6 @@ const pages = [
     path: 'https://algobek.talkyard.net/latest',
     name: 'Discussions'
   },
-  {
-    path: '/about',
-    name: 'About'
-  }
 ];
 const settings = [
   {

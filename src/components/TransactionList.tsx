@@ -98,19 +98,32 @@ export const TransactionList: FC<{setKeyPath: (path: string) => void}> = ({setKe
 
   useEffect(() => {
     const transactions: ITransaction[] = []
-    Storage.list(`${user.username}`).then(result => {
-      result.results.forEach((res) => {
-        const structure = res.key?.split('/');
-        console.log(structure)
-        const newTransaction = {key: `${structure?.[0]}/${structure?.[1]}`, tag: `${structure?.[1]}`, name: `${structure?.[1]}`}
-        if(!transactions.find(t => t.key == newTransaction.key))
-          transactions.push(newTransaction)
+
+    fetch('https://shfce2b7r5.execute-api.us-east-1.amazonaws.com/default/getUserTransactions', {
+      method: 'POST',
+      body: user.username
+    })
+    .then(result => result.json())
+    .then(res => {
+      res.forEach((transaction: any) => {
+        const temp = transaction.s3_key.split('/')
+        temp.shift()
+        Storage.list(temp.join('/')).then(result => {
+          result.results.forEach((res) => {
+            const structure = res.key?.split('/');
+            console.log(structure)
+            const newTransaction = {key: `${structure?.[0]}/${structure?.[1]}`, tag: `${structure?.[1]}`, name: `${structure?.[1]}`}
+            if(!transactions.find(t => t.key == newTransaction.key))
+              transactions.push(newTransaction)
+          })
+        }).catch(err => {
+          console.error(err)
+        })
       })
       setLoading(false)
       setTransactions(transactions)
-    }).catch(err => {
-      console.error(err)
     })
+    .catch(err => console.log(err))
   }, [])
 
   return (

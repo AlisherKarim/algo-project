@@ -9,7 +9,7 @@ import { useAuthenticator } from '@aws-amplify/ui-react';
 import { v4 as uuidv4 } from 'uuid';
 import { CircularProgress, Typography } from '@mui/material';
 
-export const FolderView: React.FC<{setCurrentFile: (content: string) => void, keyPath: string | undefined}> = ({setCurrentFile, keyPath}) => {
+export const FolderView: React.FC<{setCurrentFile: (content: string) => void, keyPath: string | undefined, setIsYaml: (content: boolean) => void,}> = ({setCurrentFile, setIsYaml, keyPath}) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [data, setData] = React.useState<{} | null>(null)
   const [isLoading, setLoading] = React.useState<boolean>(false)
@@ -53,6 +53,11 @@ export const FolderView: React.FC<{setCurrentFile: (content: string) => void, ke
   const handleFileOpen = (data: any) => {
     Storage.get(data.key, {download: true}).then((result) => {
       const reader = new FileReader();
+
+      if(data.key.endsWith('.yml'))
+        setIsYaml(true)
+      else
+        setIsYaml(false)
 
       // When the reader has finished loading the blob, convert it to a string
       reader.addEventListener('loadend', (event) => {

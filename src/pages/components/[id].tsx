@@ -159,7 +159,7 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
               <Divider />
               <ButtonGroup sx={{mt: '1rem'}}>
                 <Button size="small">Show<span>.yml</span> file</Button>
-                <Button size="small">Delete component</Button>
+                <Button size="small" disabled>Delete component</Button>
               </ButtonGroup>
             </Box>
             <Box
