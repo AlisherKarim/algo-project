@@ -10,8 +10,9 @@ import { Box, Button, ButtonGroup, Container, Paper } from "@mui/material"
 import DeleteIcon from '@mui/icons-material/Delete';
 import Link from "next/link"
 import { FileUploader } from "@/components/FileUploader"
+import { Component, ITransaction } from "@/types"
 
-const Dashboard: FC<{authenticated: boolean, username: string}> = ({authenticated, username}) => {
+const Dashboard: FC<{authenticated: boolean, username: string, components: Component[]}> = ({authenticated, username, components}) => {
   const [currentFile, setCurrentFile] = useState<string>()
   const [keyPath, setKeyPath] = useState<string>()
   const [isYaml, setIsYaml] = useState<boolean>(false)
@@ -42,9 +43,9 @@ const Dashboard: FC<{authenticated: boolean, username: string}> = ({authenticate
         initialSizes={[20, 20, 60]}
         gutterClassName={styles.customGutter}
         draggerClassName="custom-dragger-horizontal"
-        minWidths={[200, 200, 200]}
+        minWidths={[250, 200, 200]}
       >
-        <TransactionList setKeyPath={setKeyPath}/>
+        <TransactionList setKeyPath={setKeyPath} userComponents={components}/>
         <FolderView setCurrentFile={setCurrentFile} keyPath={keyPath} setIsYaml={setIsYaml}/>
         <FileViewer currentFile={currentFile} isYaml={isYaml} />
       </Splitter>
@@ -56,10 +57,16 @@ export async function getServerSideProps(context: { req?: any; res: any; modules
   const { Auth } = withSSRContext(context)
   try {
     const user = await Auth.currentAuthenticatedUser()
+    const components = await fetch('https://shfce2b7r5.execute-api.us-east-1.amazonaws.com/default/getUserTransactions', {
+      method: 'POST',
+      body: user.username
+    })
+    .then(result => result.json())
     return {
       props: {
         authenticated: true,
-        username: user.username
+        username: user.username,
+        components: components
       }
     }
   } catch (err) {

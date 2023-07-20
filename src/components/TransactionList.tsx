@@ -1,21 +1,22 @@
-import { CircularProgress, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, ListSubheader } from "@mui/material"
+import { Badge, Button, CircularProgress, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, ListSubheader, Snackbar } from "@mui/material"
 import FolderIcon from '@mui/icons-material/Folder';
 import { FC, useEffect, useState } from "react";
-import { Storage } from "aws-amplify";
+import { Auth, Storage } from "aws-amplify";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import * as React from 'react';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-
-const options = [
-  'make public',
-];
+import CloseIcon from '@mui/icons-material/Close';
+import { Component, ITransaction } from "@/types";
+import { useRouter } from 'next/router'
 
 const ITEM_HEIGHT = 24;
 
-const CustomMenu: FC<{path: string, name: string}> = ({path, name}) => {
+const CustomMenu: FC<{path: string, name: string, component: Component}> = ({path, name, component}) => {
+  const router = useRouter()
+  const [sOpen, setSOpen] = useState<boolean>(false)
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -25,30 +26,43 @@ const CustomMenu: FC<{path: string, name: string}> = ({path, name}) => {
     setAnchorEl(null);
   }
   const handleMakePublic = async () => {
-    const destinationFolder = 'public_folder/algorithms/';
-    await Storage.list(path).then((res) => {
-      res.results.forEach(result => {
-        console.log(result.key?.replace(path, destinationFolder + name))
-        if(result.key) {
-          Storage.copy({key: result.key}, {key: result.key?.replace(path, destinationFolder + name)})
-          // Storage.remove(result.key)
-        }
-      })
-    });
-
-    await Storage.list(path).then((res) => {
-      res.results.forEach(result => {
-        console.log(result.key?.replace(path, destinationFolder + name))
-        if(result.key) {
-          // Storage.copy({key: result.key}, {key: result.key?.replace(path, destinationFolder + '/' + name)})
-          Storage.remove(result.key)
-        }
-      })
-    });
+    await fetch('https://ersss5rh04.execute-api.us-east-1.amazonaws.com/default/editComponentByID', {
+      method: 'POST',
+      body: JSON.stringify({'id': component.id,'is_public': !component.is_public})
+    })
+    setAnchorEl(null)
+    setSOpen(true)
   };
+
+  const handleSnackbarClose = () => {
+    setSOpen(false)
+  }
+
+  const action = (
+    <React.Fragment>
+      <Button color="secondary" size="small" onClick={() => {router.reload()}}>
+        Refresh
+      </Button>
+      <IconButton
+        size="small"
+        aria-label="close"
+        color="inherit"
+        onClick={handleSnackbarClose}
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </React.Fragment>
+  );
 
   return (
     <div>
+      <Snackbar
+        open={sOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        message="Successfully updated! Refresh the page"
+        action={action}
+      />
       <IconButton
         aria-label="more"
         id="long-button"
@@ -67,63 +81,35 @@ const CustomMenu: FC<{path: string, name: string}> = ({path, name}) => {
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        PaperProps={{
-          style: {
-            maxHeight: ITEM_HEIGHT * 4.5,
-            width: '20ch',
-          },
-        }}
       >
-        {options.map((option) => (
-          <MenuItem key={option} onClick={handleMakePublic}>
-            {option}
-          </MenuItem>
-        ))}
+        <MenuItem onClick={handleMakePublic}>
+          {component.is_public ? 'Make private' : 'Make public'}
+        </MenuItem>
       </Menu>
     </div>
   );
 }
 
-interface ITransaction {
-  key: string,
-  tag: string,
-  name: string
-}
-
-export const TransactionList: FC<{setKeyPath: (path: string) => void}> = ({setKeyPath}) => {
-  const { user } = useAuthenticator((context) => [context.user]);
+export const TransactionList: FC<{setKeyPath: (path: string) => void, userComponents: Component[]}> = ({setKeyPath, userComponents}) => {
   const [transactionList, setTransactions] = useState<ITransaction[]>([])
   const [isLoading, setLoading] = useState<boolean>(true)
   const [selectedKey, setSelected] = useState<string>()
 
+  const createTransactionsList = () => {
+    const transactions: ITransaction[] = []
+    userComponents.forEach((transaction: Component) => {
+      const temp = transaction.s3_key.split('/')
+      temp.shift()
+      const newTransaction = {key: temp.join('/'), name: transaction.component_name, component: transaction}
+      transactions.push(newTransaction)
+    })
+    setTransactions(transactions)
+  }
+
   useEffect(() => {
     setLoading(true)
-    const transactions: ITransaction[] = []
-    fetch('https://shfce2b7r5.execute-api.us-east-1.amazonaws.com/default/getUserTransactions', {
-      method: 'POST',
-      body: user.username
-    })
-    .then(result => result.json())
-    .then(res => {
-      res.forEach((transaction: any) => {
-        const temp = transaction.s3_key.split('/')
-        temp.shift()
-        Storage.list(temp.join('/')).then(result => {
-          result.results.forEach((res) => {
-            const structure = res.key?.split('/');
-            console.log(structure)
-            const newTransaction = {key: `${structure?.[0]}/${structure?.[1]}`, tag: `${structure?.[1]}`, name: `${structure?.[1]}`}
-            if(!transactions.find(t => t.key == newTransaction.key))
-              transactions.push(newTransaction)
-          })
-        }).catch(err => {
-          console.error(err)
-        })
-      })
-      setLoading(false)
-      setTransactions(transactions)
-    })
-    .catch(err => console.log(err))
+    createTransactionsList()
+    setLoading(false)
   }, [])
 
   return (
@@ -139,17 +125,24 @@ export const TransactionList: FC<{setKeyPath: (path: string) => void}> = ({setKe
         </div>
         :
         transactionList.map(t => (
-          <div key={t.key}>
-            <ListItemButton selected={selectedKey === t.key} onClick={() => {
-              setSelected(t.key)
+          <div key={t.component.id}>
+            <ListItemButton selected={selectedKey === t.component.id} onClick={() => {
+              setSelected(t.component.id)
               setKeyPath(t.key)
             }}>
               <ListItemIcon>
-                <FolderIcon />
+                {t.component.is_public ? (
+                  <Badge badgeContent={'Public'} color="primary">
+                    <FolderIcon color="action" />
+                  </Badge>
+                ) : (
+                  <FolderIcon />
+                  )
+                }
               </ListItemIcon>
               <ListItemText id="switch-list-label-wifi" primary={t.name}/>
               <ListItemIcon style={{justifyContent: 'end'}}>
-                <CustomMenu path={t.key} name={t.name}/>
+                <CustomMenu path={t.key} name={t.name} component={t.component}/>
               </ListItemIcon>
             </ListItemButton>
             <Divider />

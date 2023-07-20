@@ -10,6 +10,7 @@ import JSZip from 'jszip'
 import React, { FC, useEffect, useState } from "react"
 
 import { ddbDocClient, PutCommand, ScanCommand } from "../libs/ddbDocClient"; 
+import { useRouter } from 'next/router';
 
 export const UploadModal: FC<{
     open: boolean,
@@ -141,6 +142,7 @@ export const UploadModal: FC<{
 }
 
 export const FileUploader: FC = () => {
+  const router = useRouter()
   const [file, setFile] = useState<File>()
   const [manifest, setManifest] = useState<string | null>(null)
   const [open, setOpen] = useState<boolean>(false)
@@ -178,14 +180,14 @@ export const FileUploader: FC = () => {
 
   const action = (
     <React.Fragment>
-      <Button color="secondary" size="small" onClick={handleSnackbarClose}>
-        Done
+      <Button color="secondary" size="small" onClick={() => router.reload()}>
+        Refresh
       </Button>
       <IconButton
         size="small"
         aria-label="close"
         color="inherit"
-        onClick={handleClose}
+        onClick={handleSnackbarClose}
       >
         <CloseIcon fontSize="small" />
       </IconButton>
@@ -198,7 +200,7 @@ export const FileUploader: FC = () => {
         open={sOpen}
         autoHideDuration={6000}
         onClose={handleSnackbarClose}
-        message="File successfully uploaded"
+        message="File successfully uploaded. Refresh the pafe to see it on the list"
         action={action}
       />
       <UploadModal open={open} handleClose={handleClose} handleSnackbar={setSOpen} file={file} storagePath={`public/components`} manifest={manifest ?? 'Loading...'}/>
