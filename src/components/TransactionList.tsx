@@ -97,8 +97,8 @@ export const TransactionList: FC<{setKeyPath: (path: string) => void}> = ({setKe
   const [selectedKey, setSelected] = useState<string>()
 
   useEffect(() => {
+    setLoading(true)
     const transactions: ITransaction[] = []
-
     fetch('https://shfce2b7r5.execute-api.us-east-1.amazonaws.com/default/getUserTransactions', {
       method: 'POST',
       body: user.username
@@ -147,7 +147,7 @@ export const TransactionList: FC<{setKeyPath: (path: string) => void}> = ({setKe
               <ListItemIcon>
                 <FolderIcon />
               </ListItemIcon>
-              <ListItemText id="switch-list-label-wifi" primary={t.name} secondary={t.tag}/>
+              <ListItemText id="switch-list-label-wifi" primary={t.name}/>
               <ListItemIcon style={{justifyContent: 'end'}}>
                 <CustomMenu path={t.key} name={t.name}/>
               </ListItemIcon>

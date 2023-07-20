@@ -2,7 +2,7 @@ import { useAuthenticator } from '@aws-amplify/ui-react'
 import { v4 as uuidv4 } from "uuid";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { monokaiSublime } from "react-syntax-highlighter/dist/cjs/styles/hljs";
-import { Alert, Box, Button, CircularProgress, IconButton, Link, Modal, Snackbar, Typography } from "@mui/material"
+import { Alert, Box, Button, CircularProgress, IconButton, Link, Modal, Snackbar, TextField, Typography } from "@mui/material"
 import FilePresentIcon from '@mui/icons-material/FilePresent';
 import CloseIcon from '@mui/icons-material/Close';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -28,6 +28,7 @@ export const UploadModal: FC<{
     }) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [loading, setLoading] = useState<boolean>(false)
+  const [componentName, setName] = useState<string>()
 
   const style = {
     position: 'absolute' as 'absolute',
@@ -48,10 +49,15 @@ export const UploadModal: FC<{
     if (!file || !user.username) 
       return
     
+    if (!componentName) {
+      setError('Component name is required')
+      return
+    }
+
     setLoading(true)
     var data = new FormData()
     data.append('path', storagePath)
-    data.append('component_name', 'Run Sorting Algorithm')
+    data.append('component_name', componentName)
     data.append('file', file)
     data.append('username', user.username)
     fetch("https://1c2kn07ik5.execute-api.us-east-1.amazonaws.com/unzipAndUpload", {
@@ -106,6 +112,21 @@ export const UploadModal: FC<{
         }}>
           {manifest}
         </SyntaxHighlighter>
+
+        <Box
+          sx={{
+            padding: '1rem 0'
+          }}
+        >
+          <TextField
+            required
+            id="outlined-required"
+            label="Component name"
+            value={componentName}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Box>
+        
 
         <Button variant='outlined' color='success' onClick={handleSubmit} disabled={loading} > 
           {loading && <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>} 

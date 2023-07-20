@@ -7,25 +7,25 @@ import { FC, useState } from "react";
 import Link from "next/link";
 import { Component } from "@/types";
 
-const rows: Component[] = [
-  {
-    name: 'BasicAlgorithm',
-    created_by: 'user124',
-    parameters: 'param1, param2, ...'
-  },
-  {
-    name: 'AnotherAlgorithm',
-    created_by: 'qwerty',
-    parameters: 'param2'
-  },
-  {
-    name: 'SimpleAlgorithm',
-    created_by: 'admin',
-    parameters: '-'
-  }
-]
+// const rows: Component[] = [
+//   {
+//     name: 'BasicAlgorithm',
+//     created_by: 'user124',
+//     parameters: 'param1, param2, ...'
+//   },
+//   {
+//     name: 'AnotherAlgorithm',
+//     created_by: 'qwerty',
+//     parameters: 'param2'
+//   },
+//   {
+//     name: 'SimpleAlgorithm',
+//     created_by: 'admin',
+//     parameters: '-'
+//   }
+// ]
 
-const ComponentsPage: FC<{authenticated: boolean, username: string}> = ({authenticated, username}) => {
+const ComponentsPage: FC<{authenticated: boolean, username: string, components: Component[]}> = ({authenticated, username, components}) => {
   if(!authenticated) {
     return <Unauthorized />
   }
@@ -39,7 +39,6 @@ const ComponentsPage: FC<{authenticated: boolean, username: string}> = ({authent
             marginTop: '2rem',
             display: "flex",
             justifyContent: 'center',
-            // flexDirection: "column",
             alignItems: "flex-start",
             gap: '3rem'
           }}
@@ -82,17 +81,17 @@ const ComponentsPage: FC<{authenticated: boolean, username: string}> = ({authent
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {rows.map((component, index) => (
+                    {components.map((component, index) => (
                       <TableRow
-                        key={component.name}
+                        key={component.id}
                         sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                         hover={true}
                       >
                         <TableCell component="th" scope="row">
-                          <Link href={`/components/${component.name}`}>{component.name}</Link>
+                          <Link href={`/components/${component.id}`}>{component.component_name}</Link>
                         </TableCell>
                         <TableCell align="right">{component.created_by}</TableCell>
-                        <TableCell align="right">{component.parameters}</TableCell>
+                        <TableCell align="right">{component.parameters.join(', ')}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -110,10 +109,12 @@ export async function getServerSideProps(context: { req?: any; res: any; modules
   const { Auth } = withSSRContext(context)
   try {
     const user = await Auth.currentAuthenticatedUser()
+    const components = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents').then(result => result.json())
     return {
       props: {
         authenticated: true,
-        username: user.username
+        username: user.username,
+        components: components
       }
     }
   } catch (err) {

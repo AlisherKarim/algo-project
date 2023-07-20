@@ -5,7 +5,8 @@ export interface User {
 }
 
 export interface Component {
-  name: string,
+  id: string,
+  component_name: string,
   created_by: string,
-  parameters: string
+  parameters: string[]
 }

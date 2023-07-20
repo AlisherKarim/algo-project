@@ -7,23 +7,23 @@ import { FC, useState } from "react";
 import Link from "next/link";
 import { Component } from "@/types";
 
-const rows: Component[] = [
-  {
-    name: 'BasicAlgorithm',
-    created_by: 'user124',
-    parameters: 'param1, param2, ...'
-  },
-  {
-    name: 'AnotherAlgorithm',
-    created_by: 'qwerty',
-    parameters: 'param2'
-  },
-  {
-    name: 'SimpleAlgorithm',
-    created_by: 'admin',
-    parameters: '-'
-  }
-]
+// const rows: Component[] = [
+//   {
+//     name: 'BasicAlgorithm',
+//     created_by: 'user124',
+//     parameters: 'param1, param2, ...'
+//   },
+//   {
+//     name: 'AnotherAlgorithm',
+//     created_by: 'qwerty',
+//     parameters: 'param2'
+//   },
+//   {
+//     name: 'SimpleAlgorithm',
+//     created_by: 'admin',
+//     parameters: '-'
+//   }
+// ]
 
 const names = [
   'Oliver Hansen',
@@ -78,7 +78,7 @@ const MultipleSelectCheckmarks: FC<{componentNames: string[]}> = ({componentName
 }
 
 
-const ComponentsPage: FC<{authenticated: boolean, username: string, component: Component}> = ({authenticated, username, component}) => {
+const ComponentsPage: FC<{authenticated: boolean, username: string, component: Component, components: Component[]}> = ({authenticated, username, component, components}) => {
   console.log(component)
   if(!authenticated) {
     return <Unauthorized />
@@ -134,15 +134,15 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {rows.map((comp, index) => (
+                    {components.map((comp, index) => (
                       <TableRow
-                        key={comp.name}
+                        key={comp.id}
                         sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                         hover={true}
-                        selected={component?.name == comp.name}
+                        selected={component?.id == comp.id}
                       >
                         <TableCell component="th" scope="row">
-                          <Link href={`/components/${comp.name}`}>{comp.name}</Link>
+                          <Link href={`/components/${comp.id}`}>{comp.component_name}</Link>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -154,7 +154,7 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
           <Paper elevation={1} sx={{padding: '1rem', width: 800}}>
             <Box>
               <Typography variant="h5" gutterBottom>
-                {component.name}
+                {component.component_name}
               </Typography>
               <Divider />
               <ButtonGroup sx={{mt: '1rem'}}>
@@ -170,53 +170,24 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
                 gap: '1rem'
               }}
             >
-              <Paper variant="outlined" sx={{paddingLeft: '1rem', paddingRight: '1rem'}}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <Typography variant='body1' width={200}>
-                    Parameter_Name_1
-                  </Typography>
-                  <MultipleSelectCheckmarks componentNames={names}/>
-                  <Button variant='outlined' color='success'>Save</Button>
-                </Box>
-              </Paper>
-
-              <Paper variant="outlined" sx={{paddingLeft: '1rem', paddingRight: '1rem'}}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <Typography variant='body1' width={200}>
-                    Param_Name_2
-                  </Typography>
-                  <MultipleSelectCheckmarks componentNames={names}/>
-                  <Button variant='outlined' color='success'>Save</Button>
-                </Box>
-              </Paper>
-
-              <Paper variant="outlined" sx={{paddingLeft: '1rem', paddingRight: '1rem'}}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <Typography variant='body1' width={200}>
-                    Parameter_Name_3
-                  </Typography>
-                  <MultipleSelectCheckmarks componentNames={names}/>
-                  <Button variant='outlined' color='success'>Save</Button>
-                </Box>
-              </Paper>
+              {component.parameters.map((param) => (
+                <Paper variant="outlined" sx={{paddingLeft: '1rem', paddingRight: '1rem'}} key={`${component.id}/${param}`}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <Typography variant='body1' width={200}>
+                      {param}
+                    </Typography>
+                    <MultipleSelectCheckmarks componentNames={names}/>
+                    <Button variant='outlined' color='success'>Save</Button>
+                  </Box>
+                </Paper>
+              ))}
+              {component.parameters.length == 0 && (<Typography variant='body2'>This components doesn't have any parameters</Typography>)}
             </Box>
           </Paper>
         </Box>
@@ -230,11 +201,15 @@ export async function getServerSideProps(context: { req?: any; res: any; modules
   const { Auth } = withSSRContext(context)
   try {
     const user = await Auth.currentAuthenticatedUser()
+    const component = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents', {method: 'POST', body: context?.params.id}).then(result => result.json())
+    const components = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents').then(result => result.json())
+
     return {
       props: {
         authenticated: true,
         username: user.username,
-        component: rows.find((r => r.name == context?.params.id))
+        component: component,
+        components: components
       }
     }
   } catch (err) {
