@@ -1,9 +1,9 @@
 import { NavBar } from "@/components/Navbar"
 import Unauthorized from "@/components/Unauthorized";
-import { Box, Button, ButtonGroup, Checkbox, Container, Divider, FormControl, InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Box, Button, ButtonGroup, Checkbox, CircularProgress, Container, Divider, FormControl, InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
 import { withSSRContext } from "aws-amplify";
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import Link from "next/link";
 import { Component } from "@/types";
 
@@ -38,14 +38,12 @@ const names = [
   'Kelly Snyder',
 ];
 
-const MultipleSelectCheckmarks: FC<{componentNames: string[]}> = ({componentNames}) => {
-  const [selectedComponentNames, setComponentNames] = useState<string[]>([]);
-
-  const handleChange = (event: SelectChangeEvent<typeof selectedComponentNames>) => {
+const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string[], setRegistered: (v: string[]) => void}> = ({componentNames, registered, setRegistered}) => {
+  const handleChange = (event: SelectChangeEvent<typeof registered>) => {
     const {
       target: { value },
     } = event;
-    setComponentNames(
+    setRegistered(
       typeof value === 'string' ? value.split(',') : value,
     );
   };
@@ -58,16 +56,15 @@ const MultipleSelectCheckmarks: FC<{componentNames: string[]}> = ({componentName
           labelId="demo-multiple-checkbox-label"
           id="demo-multiple-checkbox"
           multiple
-          value={selectedComponentNames}
+          value={registered}
           onChange={handleChange}
           input={<OutlinedInput label="Registered components" size="small" />}
           renderValue={(selected) => selected.join(', ')}
           size='small'
-          // MenuProps={MenuProps}
         >
           {componentNames.map((name) => (
             <MenuItem key={name} value={name}>
-              <Checkbox checked={selectedComponentNames.indexOf(name) > -1} />
+              <Checkbox checked={registered.indexOf(name) > -1} />
               <ListItemText primary={name} />
             </MenuItem>
           ))}
@@ -79,10 +76,27 @@ const MultipleSelectCheckmarks: FC<{componentNames: string[]}> = ({componentName
 
 
 const ComponentsPage: FC<{authenticated: boolean, username: string, component: Component, components: Component[]}> = ({authenticated, username, component, components}) => {
-  console.log(component)
+  const [registered_ids, setRegistered] = useState<any>(undefined)
+  const [loading, setLoading] = useState<boolean>(false)
+
   if(!authenticated) {
     return <Unauthorized />
   }
+
+  useEffect(() => {
+    // update registered
+    if(component.parameters.length > 0) {
+      setLoading(true)
+        fetch(`https://9dkyg96d16.execute-api.us-east-1.amazonaws.com/default/componentRegistration?id=${component.id}`, {
+        method: 'GET'
+      }).then((res) => res.json())
+      .then(result => {
+        setRegistered(result.parameters)
+        setLoading(false)
+      })
+      .catch(err => console.log(err))
+    }
+  }, [])
 
   return (
     <>
@@ -170,29 +184,71 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
                 gap: '1rem'
               }}
             >
-              {component.parameters.map((param) => (
-                <Paper variant="outlined" sx={{paddingLeft: '1rem', paddingRight: '1rem'}} key={`${component.id}/${param}`}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <Typography variant='body1' width={200}>
-                      {param}
-                    </Typography>
-                    <MultipleSelectCheckmarks componentNames={names}/>
-                    <Button variant='outlined' color='success'>Save</Button>
-                  </Box>
-                </Paper>
-              ))}
+              {loading && (
+                <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>
+              )}
+              {!loading && registered_ids && component.parameters.map((param) => {
+                return (
+                  <Paper variant="outlined" sx={{paddingLeft: '1rem', paddingRight: '1rem'}} key={`${component.id}/${param}`}>
+                    <ParameterRegistration param={param} components={components} component={component} registered_ids={registered_ids[param]}/>
+                  </Paper>
+                )
+              }
+              )}
               {component.parameters.length == 0 && (<Typography variant='body2'>This components doesn't have any parameters</Typography>)}
             </Box>
           </Paper>
         </Box>
       </Container>
     </>
+  )
+}
+
+const ParameterRegistration: FC<{param: string, components: Component[], component: Component, registered_ids: string[]}> = ({param, components, component, registered_ids}) => {
+  const [registered, setRegistered] = useState<string[]>([])
+  const [loading, setLoading] = useState<boolean>(false)
+
+  useEffect(() => {
+    setRegistered(registered_ids.map(id => components.find(comp => comp.id == id)!.component_name))
+  }, [])
+
+  const handleSave = () => {
+    setLoading(true)
+    const reg_ids: string[] = []
+    registered.forEach(reg => {
+      reg_ids.push(components.find(comp => comp.component_name == reg)!.id)
+    })
+    console.log(reg_ids)
+
+    fetch(`https://9dkyg96d16.execute-api.us-east-1.amazonaws.com/default/componentRegistration`, {
+      method: 'POST',
+      body: JSON.stringify(
+        {
+          'id': component.id,
+          'param_name': param,
+          'registered': reg_ids
+        }
+      )
+    }).then((res) => setLoading(false))
+    .catch(err => console.log(err))
+  }
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}
+    >
+      <Typography variant='body1' width={200}>
+        {param}
+      </Typography>
+      <MultipleSelectCheckmarks componentNames={components.map(comp => comp.component_name)} registered={registered} setRegistered={setRegistered}/>
+      <Button variant='outlined' color='success' onClick={handleSave}>
+        {loading ? (<><CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/> Saving</>) : 'Save'}
+      </Button>
+    </Box>
   )
 }
 
