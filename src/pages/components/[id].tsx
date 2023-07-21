@@ -79,10 +79,6 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
   const [registered_ids, setRegistered] = useState<any>(undefined)
   const [loading, setLoading] = useState<boolean>(false)
 
-  if(!authenticated) {
-    return <Unauthorized />
-  }
-
   useEffect(() => {
     // update registered
     if(component.parameters.length > 0) {
@@ -97,6 +93,10 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
       .catch(err => console.log(err))
     }
   }, [])
+
+  if(!authenticated) {
+    return <Unauthorized />
+  }
 
   return (
     <>
@@ -195,7 +195,7 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
                 )
               }
               )}
-              {component.parameters.length == 0 && (<Typography variant='body2'>This components doesn't have any parameters</Typography>)}
+              {component.parameters.length == 0 && (<Typography variant='body2'>This components does not have any parameters</Typography>)}
             </Box>
           </Paper>
         </Box>
