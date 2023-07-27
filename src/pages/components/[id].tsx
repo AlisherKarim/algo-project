@@ -7,37 +7,6 @@ import { FC, useEffect, useState } from "react";
 import Link from "next/link";
 import { Component } from "@/types";
 
-// const rows: Component[] = [
-//   {
-//     name: 'BasicAlgorithm',
-//     created_by: 'user124',
-//     parameters: 'param1, param2, ...'
-//   },
-//   {
-//     name: 'AnotherAlgorithm',
-//     created_by: 'qwerty',
-//     parameters: 'param2'
-//   },
-//   {
-//     name: 'SimpleAlgorithm',
-//     created_by: 'admin',
-//     parameters: '-'
-//   }
-// ]
-
-const names = [
-  'Oliver Hansen',
-  'Van Henry',
-  'April Tucker',
-  'Ralph Hubbard',
-  'Omar Alexander',
-  'Carlos Abbott',
-  'Miriam Wagner',
-  'Bradley Wilkerson',
-  'Virginia Andrews',
-  'Kelly Snyder',
-];
-
 const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string[], setRegistered: (v: string[]) => void}> = ({componentNames, registered, setRegistered}) => {
   const handleChange = (event: SelectChangeEvent<typeof registered>) => {
     const {
@@ -83,7 +52,7 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
     // update registered
     if(component.parameters.length > 0) {
       setLoading(true)
-        fetch(`https://9dkyg96d16.execute-api.us-east-1.amazonaws.com/default/componentRegistration?id=${component.id}`, {
+      fetch(`https://9dkyg96d16.execute-api.us-east-1.amazonaws.com/default/componentRegistration?id=${component.id}`, {
         method: 'GET'
       }).then((res) => res.json())
       .then(result => {
@@ -92,7 +61,7 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
       })
       .catch(err => console.log(err))
     }
-  }, [])
+  }, [component])
 
   if(!authenticated) {
     return <Unauthorized />

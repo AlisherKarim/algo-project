@@ -1,10 +1,14 @@
 import Button from '@mui/material/Button';
-import { Storage } from 'aws-amplify'
-import { Box, Card, CardContent, CircularProgress, Container, Divider, FormControl, Grid, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material'
+import { Storage, withSSRContext } from 'aws-amplify'
+import { Box, Card, CardContent, Checkbox, CircularProgress, Container, Divider, FormControl, Grid, IconButton, InputLabel, List, ListItem, ListItemButton, ListItemIcon, ListItemText, MenuItem, OutlinedInput, Paper, Select, SelectChangeEvent, Stack, Typography } from '@mui/material'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { FC, useEffect, useState } from 'react';
 import { getModule } from '../utils/wasm'
 import { NavBar } from '@/components/Navbar';
+import { Component } from '@/types';
+import EditIcon from '@mui/icons-material/Edit';
+import NestedModal from '@/components/SingleCompModal';
+import React from 'react';
 
 const Demo: FC = () => {
   const [main, setMain] = useState<string>('RunSortingAlgm')
@@ -109,20 +113,102 @@ const Demo: FC = () => {
 }
 export default Demo
 
+const createComponentTree = async (id: string) => {
+  const ret: any = {}
+  ret.component = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents', {
+    method: 'POST',
+    body: id
+  }).then((res) => res.json())
+
+  const result = await fetch(`https://9dkyg96d16.execute-api.us-east-1.amazonaws.com/default/componentRegistration?id=${id}`, {
+    method: 'GET'
+  }).then((res) => res.json())
+  
+  ret['parameters'] = {}
+  for(const param in result.parameters) {
+    ret['parameters'][param] = []
+    for(const compID of result.parameters[param]) {
+      await ret['parameters'][param].push(await createComponentTree(compID))
+    }
+  }
+  
+  return ret
+}
+
 const MainList: FC = () => {
+  const [chosen, setChosen] = useState<string[]>([])
+  const [compTree, setCompTree] = useState<any>(undefined)
+  const [parameters, setParameters] = useState<string[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    createComponentTree('72308948efd14331be8f01dc323dc8a9').then(res => {
+      setCompTree(res)
+      setParameters(res.component.parameters)
+      console.log(res.parameters['SortAlgm1'])
+      setLoading(false)
+    })
+  }, [])
+
   return (
-    <Stack spacing={2} sx={{marginTop: '2rem'}}>
-      <Card>
-        <CardContent>
-          <Typography sx={{ mb: 1.5 }} color="text.secondary">
-            RunSortingAlgm
-          </Typography>
-          <Typography variant="body2">
-            {'@RunSortingAlgm<$RandomVectorGenerator, $SortAlgm1, $SortAlgm2>'}
-          </Typography>
-        </CardContent>
-      </Card>
-    </Stack>
+    <React.Fragment>
+      <Stack spacing={2} sx={{marginTop: '2rem'}}>
+        <Card>
+          <CardContent>
+            {!loading && (
+              <>
+                <Typography sx={{ mb: 1.5 }} color="text.secondary">
+                  {compTree.component.component_name}
+                </Typography>
+
+                {parameters.map((param: string) => (
+                  <Paper variant="outlined" sx={{paddingLeft: '1rem', paddingRight: '1rem', mt: '0.5rem'}} key={`${compTree.component.id}/${param}`}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Typography variant='body1' width={200}>
+                        {param}
+                      </Typography>
+                      <List>
+                        {compTree.parameters[param].map((c: any) => (
+                          <ListItem
+                            key={`${c.component.id}`}
+                            secondaryAction={
+                              <NestedModal node={c}/>
+                            }
+                            // disablePadding
+                            sx={{width: '400px'}}
+                          >
+                            <ListItemButton role={undefined} dense>
+                              <ListItemIcon>
+                                <Checkbox
+                                  edge="start"
+                                  // checked={checked.indexOf(value) !== -1}
+                                  tabIndex={-1}
+                                  disableRipple
+                                  inputProps={{ 'aria-labelledby': c.component.id }}
+                                />
+                              </ListItemIcon>
+                              <ListItemText id={c.component.id} primary={c.component.component_name} />
+                            </ListItemButton>
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Box>
+                  </Paper>
+                ))}
+              </>
+            )}
+            {loading && (
+              <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>
+            )}
+          </CardContent>
+        </Card>
+      </Stack>
+    </React.Fragment>
   )
 }
 
