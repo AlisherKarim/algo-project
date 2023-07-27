@@ -7,7 +7,7 @@ import { FC, useEffect, useState } from "react";
 import Link from "next/link";
 import { Component } from "@/types";
 
-const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string[], setRegistered: (v: string[]) => void}> = ({componentNames, registered, setRegistered}) => {
+const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string[], setRegistered: (v: string[]) => void, saveFunction: (v: string[]) => void}> = ({componentNames, registered, setRegistered, saveFunction}) => {
   const handleChange = (event: SelectChangeEvent<typeof registered>) => {
     const {
       target: { value },
@@ -15,6 +15,7 @@ const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string
     setRegistered(
       typeof value === 'string' ? value.split(',') : value,
     );
+    saveFunction(typeof value === 'string' ? value.split(',') : value)
   };
 
   return (
@@ -181,10 +182,10 @@ const ParameterRegistration: FC<{param: string, components: Component[], compone
     setRegistered(registered_ids.map(id => components.find(comp => comp.id == id)!.component_name))
   }, [])
 
-  const handleSave = () => {
+  const handleSave = (registered_comp_names: string[]) => {
     setLoading(true)
     const reg_ids: string[] = []
-    registered.forEach(reg => {
+    registered_comp_names.forEach(reg => {
       reg_ids.push(components.find(comp => comp.component_name == reg)!.id)
     })
     console.log(reg_ids)
@@ -212,11 +213,12 @@ const ParameterRegistration: FC<{param: string, components: Component[], compone
     >
       <Typography variant='body1' width={200}>
         {param}
+        {loading && <CircularProgress size={20} sx={{marginLeft: '1rem', position: 'absolute'}} color='success'/>}
       </Typography>
-      <MultipleSelectCheckmarks componentNames={components.map(comp => comp.component_name)} registered={registered} setRegistered={setRegistered}/>
-      <Button variant='outlined' color='success' onClick={handleSave}>
+      <MultipleSelectCheckmarks componentNames={components.map(comp => comp.component_name)} registered={registered} setRegistered={setRegistered} saveFunction={handleSave}/>
+      {/* <Button variant='outlined' color='success'>
         {loading ? (<><CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/> Saving</>) : 'Save'}
-      </Button>
+      </Button> */}
     </Box>
   )
 }

@@ -5,8 +5,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'r
 import { FC, useEffect, useState } from 'react';
 import { getModule } from '../utils/wasm'
 import { NavBar } from '@/components/Navbar';
-import { Component } from '@/types';
-import EditIcon from '@mui/icons-material/Edit';
 import NestedModal from '@/components/SingleCompModal';
 import React from 'react';
 

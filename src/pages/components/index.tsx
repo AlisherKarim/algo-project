@@ -7,24 +7,6 @@ import { FC, useState } from "react";
 import Link from "next/link";
 import { Component } from "@/types";
 
-// const rows: Component[] = [
-//   {
-//     name: 'BasicAlgorithm',
-//     created_by: 'user124',
-//     parameters: 'param1, param2, ...'
-//   },
-//   {
-//     name: 'AnotherAlgorithm',
-//     created_by: 'qwerty',
-//     parameters: 'param2'
-//   },
-//   {
-//     name: 'SimpleAlgorithm',
-//     created_by: 'admin',
-//     parameters: '-'
-//   }
-// ]
-
 const ComponentsPage: FC<{authenticated: boolean, username: string, components: Component[]}> = ({authenticated, username, components}) => {
   if(!authenticated) {
     return <Unauthorized />

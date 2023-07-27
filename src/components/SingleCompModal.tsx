@@ -57,36 +57,39 @@ const NestedModal: React.FC<{node: any}> = ({node}) => {
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between'
+                      // justifyContent: 'space-between'
                     }}
                   >
-                    <Typography variant='body1' width={200}>
+                    <Typography variant='body1' width={300}>
                       {param}
                     </Typography>
-                    <List>
-                      {Array.from(node.parameters[param]).map((comp: any) => (
-                        <ListItem
-                          key={comp.component.id}
-                          secondaryAction={
-                            <NestedModal node={comp}/>
-                          }
-                          disablePadding
-                        >
-                          <ListItemButton role={undefined} dense>
-                            <ListItemIcon>
-                              <Checkbox
-                                edge="start"
-                                // checked={checked.indexOf(value) !== -1}
-                                tabIndex={-1}
-                                disableRipple
-                                inputProps={{ 'aria-labelledby': comp.component.id }}
-                              />
-                            </ListItemIcon>
-                            <ListItemText id={comp.component.id} primary={comp.component.component_name} />
-                          </ListItemButton>
-                        </ListItem>
-                      ))}
-                    </List>
+                    <Paper variant='outlined' sx={{width: '500px', m: '0.5rem'}}>
+                      <List>
+                        {Array.from(node.parameters[param]).map((comp: any) => (
+                          <ListItem
+                            key={comp.component.id}
+                            secondaryAction={
+                              <NestedModal node={comp}/>
+                            }
+                            disablePadding
+                          >
+                            <ListItemButton role={undefined} dense>
+                              <ListItemIcon>
+                                <Checkbox
+                                  edge="start"
+                                  // checked={checked.indexOf(value) !== -1}
+                                  tabIndex={-1}
+                                  disableRipple
+                                  inputProps={{ 'aria-labelledby': comp.component.id }}
+                                />
+                              </ListItemIcon>
+                              <ListItemText id={comp.component.id} primary={comp.component.component_name} />
+                            </ListItemButton>
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Paper>
+                    
                   </Box>
                 </Paper>
               ))}
