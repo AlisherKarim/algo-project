@@ -202,7 +202,10 @@ export const NavBar: React.FC = () => {
                 sx={{ my: 2, color: 'inherit', display: 'block' }}
               >
                 {/* <Link href={`/${page}`}> */}
-                  {page.name}
+                  <Typography variant='button' sx={{textDecoration: router.pathname == page.path ? 'underline' : 'none'}}>
+                    {page.name}
+                  </Typography>
+                  
                 {/* </Link> */}
               </Button>
             ))}

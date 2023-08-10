@@ -1,13 +1,24 @@
 import { NavBar } from "@/components/Navbar"
 import Unauthorized from "@/components/Unauthorized";
-import { Box, Button, ButtonGroup, Checkbox, Container, Divider, FormControl, InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, ButtonGroup, Checkbox, Container, Divider, FormControl, InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
 import { withSSRContext } from "aws-amplify";
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import Link from "next/link";
 import { Component } from "@/types";
+import _ from 'lodash';
 
 const ComponentsPage: FC<{authenticated: boolean, username: string, components: Component[]}> = ({authenticated, username, components}) => {
+  const [filteredComponents, setFilteredComponents] = useState<Component[]>(components)
+  
+  const debouncedSearch = _.debounce((term) => {
+    fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents', {method: 'POST', body: JSON.stringify({'keyword': term})}).then(result => result.json()).then(res => {
+      console.log(term)
+      console.log(res)
+      setFilteredComponents(res)
+    })
+  }, 300);
+
   if(!authenticated) {
     return <Unauthorized />
   }
@@ -34,6 +45,11 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, components: 
               gap: '2rem'
             }}
           >
+            <Alert
+              severity="info"
+            >
+              Type keywords to search for components. For example, 'algorithms'
+            </Alert>
             <Box
               sx={{
                 maxWidth: '100%',
@@ -50,6 +66,9 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, components: 
                 sx={{
                   backgroundColor: '#fff'
                 }}
+                onChange={(e) => {
+                  debouncedSearch(e.target.value)
+                }}
               />
             </Box>
             <Box>
@@ -63,19 +82,23 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, components: 
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {components.map((component, index) => (
-                      <TableRow
-                        key={component.id}
-                        sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                        hover={true}
-                      >
-                        <TableCell component="th" scope="row">
-                          <Link href={`/components/${component.id}`}>{component.component_name}</Link>
-                        </TableCell>
-                        <TableCell align="right">{component.created_by}</TableCell>
-                        <TableCell align="right">{component.parameters.join(', ')}</TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredComponents.map((component, index) => {
+                      // if (keyword != '' && component?.keywords.indexOf(keyword) == -1)
+                      //   return
+                      return (
+                        <TableRow
+                          key={component.id}
+                          sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                          hover={true}
+                        >
+                          <TableCell component="th" scope="row">
+                            <Link href={`/components/${component.id}`}>{component.component_name}</Link>
+                          </TableCell>
+                          <TableCell align="right">John Doe</TableCell>
+                          <TableCell align="right">{component.parameters.join(', ')}</TableCell>
+                        </TableRow>
+                      )}
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -91,7 +114,7 @@ export async function getServerSideProps(context: { req?: any; res: any; modules
   const { Auth } = withSSRContext(context)
   try {
     const user = await Auth.currentAuthenticatedUser()
-    const components = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents').then(result => result.json())
+    const components = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents', {method: 'POST', body: JSON.stringify({'keyword': ''})}).then(result => result.json())
     return {
       props: {
         authenticated: true,

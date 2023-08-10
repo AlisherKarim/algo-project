@@ -29,7 +29,6 @@ export const UploadModal: FC<{
     }) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [loading, setLoading] = useState<boolean>(false)
-  const [componentName, setName] = useState<string>()
 
   const style = {
     position: 'absolute' as 'absolute',
@@ -49,16 +48,10 @@ export const UploadModal: FC<{
   const handleSubmit = async () => {
     if (!file || !user.username) 
       return
-    
-    if (!componentName) {
-      setError('Component name is required')
-      return
-    }
 
     setLoading(true)
     var data = new FormData()
     data.append('path', storagePath)
-    data.append('component_name', componentName)
     data.append('file', file)
     data.append('username', user.username)
     fetch("https://1c2kn07ik5.execute-api.us-east-1.amazonaws.com/unzipAndUpload", {
@@ -113,21 +106,6 @@ export const UploadModal: FC<{
         }}>
           {manifest}
         </SyntaxHighlighter>
-
-        <Box
-          sx={{
-            padding: '1rem 0'
-          }}
-        >
-          <TextField
-            required
-            id="outlined-required"
-            label="Component name"
-            value={componentName}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </Box>
-        
 
         <Button variant='outlined' color='success' onClick={handleSubmit} disabled={loading} > 
           {loading && <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>} 

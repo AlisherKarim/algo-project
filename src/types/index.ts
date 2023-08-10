@@ -10,7 +10,8 @@ export interface Component {
   created_by: string,
   s3_key: string,
   parameters: string[],
-  is_public: boolean
+  is_public: boolean,
+  keywords: string[]
 }
 
 export interface ITransaction {

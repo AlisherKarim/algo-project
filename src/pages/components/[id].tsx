@@ -6,6 +6,7 @@ import { withSSRContext } from "aws-amplify";
 import { FC, useEffect, useState } from "react";
 import Link from "next/link";
 import { Component } from "@/types";
+import _ from 'lodash';
 
 const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string[], setRegistered: (v: string[]) => void, saveFunction: (v: string[]) => void}> = ({componentNames, registered, setRegistered, saveFunction}) => {
   const handleChange = (event: SelectChangeEvent<typeof registered>) => {
@@ -46,8 +47,17 @@ const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string
 
 
 const ComponentsPage: FC<{authenticated: boolean, username: string, component: Component, components: Component[]}> = ({authenticated, username, component, components}) => {
+  const [filteredComponents, setFilteredComponents] = useState<Component[]>(components)
   const [registered_ids, setRegistered] = useState<any>(undefined)
   const [loading, setLoading] = useState<boolean>(false)
+
+  const debouncedSearch = _.debounce((term) => {
+    fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents', {method: 'POST', body: JSON.stringify({'keyword': term})}).then(result => result.json()).then(res => {
+      console.log(term)
+      console.log(res)
+      setFilteredComponents(res)
+    })
+  }, 300);
 
   useEffect(() => {
     // update registered
@@ -107,6 +117,9 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
                 sx={{
                   backgroundColor: '#fff'
                 }}
+                onChange={(e) => {
+                  debouncedSearch(e.target.value)
+                }}
               />
             </Box>
             <Box>
@@ -118,7 +131,7 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {components.map((comp, index) => (
+                    {filteredComponents.map((comp, index) => (
                       <TableRow
                         key={comp.id}
                         sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -228,8 +241,8 @@ export async function getServerSideProps(context: { req?: any; res: any; modules
   const { Auth } = withSSRContext(context)
   try {
     const user = await Auth.currentAuthenticatedUser()
-    const component = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents', {method: 'POST', body: context?.params.id}).then(result => result.json())
-    const components = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents').then(result => result.json())
+    const component = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents', {method: 'POST', body: JSON.stringify({'id': context?.params.id})}).then(result => result.json())
+    const components = await fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents', {method: 'POST', body: JSON.stringify({'keyword': ''})}).then(result => result.json())
 
     return {
       props: {
