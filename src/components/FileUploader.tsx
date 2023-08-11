@@ -18,14 +18,16 @@ export const UploadModal: FC<{
     handleSnackbar: (v: boolean) => void,
     file: File | undefined,
     storagePath: string,
-    manifest: string
+    manifest: string,
+    callBack: () => void
   }> = ({
       open,
       handleClose,
       handleSnackbar,
       file,
       storagePath,
-      manifest
+      manifest,
+      callBack
     }) => {
   const { user } = useAuthenticator((context) => [context.user]);
   const [loading, setLoading] = useState<boolean>(false)
@@ -52,8 +54,10 @@ export const UploadModal: FC<{
     setLoading(true)
     var data = new FormData()
     data.append('path', storagePath)
-    data.append('file', file)
     data.append('username', user.username)
+    data.append('user_fullname', user.attributes?.name || '')
+    data.append('file', file)
+    
     fetch("https://1c2kn07ik5.execute-api.us-east-1.amazonaws.com/unzipAndUpload", {
       method: 'POST',
       body: data,
@@ -76,10 +80,15 @@ export const UploadModal: FC<{
       } catch (err: any) {
         console.error("Error", err.stack);
       }
-      
+
       setLoading(false);
-      handleClose()
-      handleSnackbar(true)
+      if(res.status == 300) {
+        setError(await res.json().then(body => body.message))
+      } else {
+        handleClose()
+        callBack()
+        handleSnackbar(true)
+      }
     }).catch(err => setError("Something went wrong"))
   }
 
@@ -119,7 +128,7 @@ export const UploadModal: FC<{
   )
 }
 
-export const FileUploader: FC = () => {
+export const FileUploader: FC<{callBack: () => void}> = ({callBack}) => {
   const router = useRouter()
   const [file, setFile] = useState<File>()
   const [manifest, setManifest] = useState<string | null>(null)
@@ -181,7 +190,7 @@ export const FileUploader: FC = () => {
         message="File successfully uploaded. Refresh the pafe to see it on the list"
         action={action}
       />
-      <UploadModal open={open} handleClose={handleClose} handleSnackbar={setSOpen} file={file} storagePath={`public/components`} manifest={manifest ?? 'Loading...'}/>
+      <UploadModal open={open} handleClose={handleClose} handleSnackbar={setSOpen} file={file} storagePath={`public/components`} manifest={manifest ?? 'Loading...'} callBack={callBack}/>
       <Button variant="contained" component="label" startIcon={<UploadIcon />}>
         Upload
         <input hidden accept=".zip" multiple type="file" onChange={handleInput}/>

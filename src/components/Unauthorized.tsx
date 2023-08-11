@@ -8,7 +8,7 @@ const Unauthorized = () => {
       <NavBar />
       <Container>
         <div style={{display: "flex", gap: "1rem", marginTop: "3rem", justifyContent: "space-between"}}>
-          Please, sign in first to contribute
+          Please, sign in first
         </div>
         <Link href="/login">Login</Link>
       </Container>

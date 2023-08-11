@@ -15,7 +15,33 @@ import { Component, ITransaction } from "@/types"
 const Dashboard: FC<{authenticated: boolean, username: string, components: Component[]}> = ({authenticated, username, components}) => {
   const [currentFile, setCurrentFile] = useState<string>()
   const [keyPath, setKeyPath] = useState<string>()
+  const [selectedComponent, setSelected] = useState<string>()
   const [isYaml, setIsYaml] = useState<boolean>(false)
+  const [userComponents, setUserComponents] = useState<Component[]>(components)
+
+  const updateComponents = () => {
+    fetch('https://shfce2b7r5.execute-api.us-east-1.amazonaws.com/default/getUserTransactions', {
+      method: 'POST',
+      body: username
+    })
+    .then(result => result.json())
+    .then(res => setUserComponents(res))
+  }
+
+  const handleDelete = () => {
+    if(!selectedComponent)
+      return
+
+    fetch('https://6zgeflldw6.execute-api.us-east-1.amazonaws.com/default/deleteComponentByID', {
+      method: 'POST',
+      body: JSON.stringify({'id': selectedComponent})
+    }).then(res => res.json())
+    .then(result => {
+      updateComponents()
+    })
+    .catch(err => console.log(err))
+  }
+
   if(!authenticated) {
     return (
       <>
@@ -33,8 +59,8 @@ const Dashboard: FC<{authenticated: boolean, username: string, components: Compo
     <NavBar />
     <Paper variant="outlined">
       <Box sx={{m: '1rem', display: 'flex', gap: '1rem'}}>
-        <FileUploader />
-        <Button startIcon={<DeleteIcon />} disabled variant='contained'>Delete</Button>
+        <FileUploader callBack={updateComponents} />
+        <Button startIcon={<DeleteIcon />} disabled={!selectedComponent} onClick={handleDelete} variant='contained'>Delete</Button>
       </Box>
     </Paper>
     <Paper style={{display: 'flex', height: '82vh'}} variant="outlined" >
@@ -45,7 +71,7 @@ const Dashboard: FC<{authenticated: boolean, username: string, components: Compo
         draggerClassName="custom-dragger-horizontal"
         minWidths={[250, 200, 200]}
       >
-        <TransactionList setKeyPath={setKeyPath} userComponents={components}/>
+        <TransactionList setKeyPath={setKeyPath} userComponents={userComponents} callBack={updateComponents} setSelectedComponent={setSelected}/>
         <FolderView setCurrentFile={setCurrentFile} keyPath={keyPath} setIsYaml={setIsYaml}/>
         <FileViewer currentFile={currentFile} isYaml={isYaml} />
       </Splitter>

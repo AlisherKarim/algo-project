@@ -68,7 +68,7 @@ const createComponentTree = async (id: string) => {
     "https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents",
     {
       method: "POST",
-      body: id,
+      body: JSON.stringify({'id': id}),
     }
   ).then((res) => res.json());
 

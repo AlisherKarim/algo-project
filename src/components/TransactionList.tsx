@@ -14,7 +14,7 @@ import { useRouter } from 'next/router'
 
 const ITEM_HEIGHT = 24;
 
-const CustomMenu: FC<{path: string, name: string, component: Component}> = ({path, name, component}) => {
+const CustomMenu: FC<{path: string, name: string, component: Component, callBack: () => void}> = ({path, name, component, callBack}) => {
   const router = useRouter()
   const [sOpen, setSOpen] = useState<boolean>(false)
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -32,6 +32,7 @@ const CustomMenu: FC<{path: string, name: string, component: Component}> = ({pat
     })
     setAnchorEl(null)
     setSOpen(true)
+    callBack()
   };
 
   const handleSnackbarClose = () => {
@@ -90,7 +91,7 @@ const CustomMenu: FC<{path: string, name: string, component: Component}> = ({pat
   );
 }
 
-export const TransactionList: FC<{setKeyPath: (path: string) => void, userComponents: Component[]}> = ({setKeyPath, userComponents}) => {
+export const TransactionList: FC<{setKeyPath: (path: string) => void, userComponents: Component[], callBack: () => void, setSelectedComponent: (s: string) => void}> = ({setKeyPath, userComponents, callBack, setSelectedComponent}) => {
   const [transactionList, setTransactions] = useState<ITransaction[]>([])
   const [isLoading, setLoading] = useState<boolean>(true)
   const [selectedKey, setSelected] = useState<string>()
@@ -107,10 +108,11 @@ export const TransactionList: FC<{setKeyPath: (path: string) => void, userCompon
   }
 
   useEffect(() => {
+    console.log('called')
     setLoading(true)
     createTransactionsList()
     setLoading(false)
-  }, [])
+  }, [userComponents])
 
   return (
     <List
@@ -128,6 +130,7 @@ export const TransactionList: FC<{setKeyPath: (path: string) => void, userCompon
           <div key={t.component.id}>
             <ListItemButton selected={selectedKey === t.component.id} onClick={() => {
               setSelected(t.component.id)
+              setSelectedComponent(t.component.id)
               setKeyPath(t.key)
             }}>
               <ListItemIcon>
@@ -142,7 +145,7 @@ export const TransactionList: FC<{setKeyPath: (path: string) => void, userCompon
               </ListItemIcon>
               <ListItemText id="switch-list-label-wifi" primary={t.name}/>
               <ListItemIcon style={{justifyContent: 'end'}}>
-                <CustomMenu path={t.key} name={t.name} component={t.component}/>
+                <CustomMenu path={t.key} name={t.name} component={t.component} callBack={callBack}/>
               </ListItemIcon>
             </ListItemButton>
             <Divider />
