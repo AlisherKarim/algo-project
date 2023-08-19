@@ -1,11 +1,12 @@
 import { NavBar } from "@/components/Navbar"
 import Unauthorized from "@/components/Unauthorized";
-import { Box, Button, ButtonGroup, Checkbox, CircularProgress, Container, Divider, FormControl, InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Button, ButtonGroup, Checkbox, Chip, CircularProgress, Container, Divider, FormControl, IconButton, InputLabel, List, ListItem, ListItemButton, ListItemText, MenuItem, Modal, OutlinedInput, Paper, Select, SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
+import AddIcon from '@mui/icons-material/Add';
 import { withSSRContext } from "aws-amplify";
 import { FC, useEffect, useState } from "react";
 import Link from "next/link";
-import { Component } from "@/types";
+import { Component, RegisteredComponent } from "@/types";
 import _ from 'lodash';
 
 const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string[], setRegistered: (v: string[]) => void, saveFunction: (v: string[]) => void}> = ({componentNames, registered, setRegistered, saveFunction}) => {
@@ -18,6 +19,10 @@ const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string
     );
     saveFunction(typeof value === 'string' ? value.split(',') : value)
   };
+
+  function getRandomInt(max: number) {
+    return Math.floor(Math.random() * max);
+  }
 
   return (
     <div>
@@ -37,6 +42,7 @@ const MultipleSelectCheckmarks: FC<{componentNames: string[], registered: string
             <MenuItem key={name} value={name}>
               <Checkbox checked={registered.indexOf(name) > -1} />
               <ListItemText primary={name} />
+              <Chip label={`Registered by ${getRandomInt(3)} people`} />
             </MenuItem>
           ))}
         </Select>
@@ -59,6 +65,25 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
     })
   }, 300);
 
+  const registerComponent = (param_name: string, comp: RegisteredComponent) => {
+    fetch(`https://9dkyg96d16.execute-api.us-east-1.amazonaws.com/default/componentRegistration`, {
+      method: 'POST',
+      body: JSON.stringify(
+        {
+          'id': component.id,
+          'param_name': param_name,
+          'user_id': username,
+          'component_id': comp.component_id
+        }
+      )
+    }).then((res) => res.json())
+    .then((result) => {
+      console.log(result)
+      setRegistered(result.parameters)
+    })
+    .catch(err => console.log(err))
+  }
+
   useEffect(() => {
     // update registered
     if(component.parameters.length > 0) {
@@ -67,6 +92,7 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
         method: 'GET'
       }).then((res) => res.json())
       .then(result => {
+        console.log(result)
         setRegistered(result.parameters)
         setLoading(false)
       })
@@ -170,15 +196,27 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
               {loading && (
                 <CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/>
               )}
-              {!loading && registered_ids && component.parameters.map((param) => {
-                return (
-                  <Paper variant="outlined" sx={{paddingLeft: '1rem', paddingRight: '1rem'}} key={`${component.id}/${param}`}>
-                    <ParameterRegistration param={param} components={components} component={component} registered_ids={registered_ids[param]}/>
-                  </Paper>
-                )
-              }
+              {!loading && registered_ids && 
+              ( 
+                <>
+                  {component.parameters.length != 0 && 
+                  <Alert
+                    severity="info"
+                  >
+                    Click 'More' to register your own components or see the full list of components registered to that parameter
+                  </Alert>
+                  }
+                  {component.parameters.map((param) => {
+                    return (
+                      <Paper variant="outlined" sx={{paddingLeft: '1rem', paddingRight: '1rem'}} key={`${component.id}/${param}`}>
+                        {/* <ParameterRegistration param={param} components={components} component={component} registered_ids={registered_ids[param]}/> */}
+                        <RegisterComponent user_id={username} component={component} param_name={param} registered_components={registered_ids[param]} registerComponent={registerComponent} />
+                      </Paper>
+                    )
+                  })}
+                </>
               )}
-              {component.parameters.length == 0 && (<Typography variant='body2'>This components does not have any parameters</Typography>)}
+              {component.parameters.length == 0 && (<Alert severity='warning'>This components does not have any parameters</Alert>)}
             </Box>
           </Paper>
         </Box>
@@ -187,34 +225,36 @@ const ComponentsPage: FC<{authenticated: boolean, username: string, component: C
   )
 }
 
-const ParameterRegistration: FC<{param: string, components: Component[], component: Component, registered_ids: string[]}> = ({param, components, component, registered_ids}) => {
-  const [registered, setRegistered] = useState<string[]>([])
-  const [loading, setLoading] = useState<boolean>(false)
+const RegisterComponent: FC<{user_id: string, component: Component, param_name: string, registered_components: RegisteredComponent[], registerComponent: (param_name: string, comp: RegisteredComponent) => void}> = ({user_id, component, param_name, registered_components, registerComponent}) => {
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+  const style = {
+    position: 'absolute' as 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '60%',
+    bgcolor: 'background.paper',
+    borderRadius: '5px',
+    boxShadow: 24,
+    p: 4,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px'
+  };
+
+  const [showFiltered, setShowFiltered] = useState<boolean>(false)
+  const [filteredComponents, setFilteredComponents] = useState<Component[]>()
+  const debouncedSearch = _.debounce((term) => {
+    fetch(`https://kuaunfdp12.execute-api.us-east-1.amazonaws.com/default/componentRegistrationSearch?id=${component.id}&param_name=${param_name}&search_term=${term}`, {method: 'GET'}).then(result => result.json()).then(res => {
+      setFilteredComponents(res)
+    })
+  }, 300);
 
   useEffect(() => {
-    setRegistered(registered_ids.map(id => components.find(comp => comp.id == id)!.component_name))
+    debouncedSearch('')
   }, [])
-
-  const handleSave = (registered_comp_names: string[]) => {
-    setLoading(true)
-    const reg_ids: string[] = []
-    registered_comp_names.forEach(reg => {
-      reg_ids.push(components.find(comp => comp.component_name == reg)!.id)
-    })
-    console.log(reg_ids)
-
-    fetch(`https://9dkyg96d16.execute-api.us-east-1.amazonaws.com/default/componentRegistration`, {
-      method: 'POST',
-      body: JSON.stringify(
-        {
-          'id': component.id,
-          'param_name': param,
-          'registered': reg_ids
-        }
-      )
-    }).then((res) => setLoading(false))
-    .catch(err => console.log(err))
-  }
 
   return (
     <Box
@@ -225,14 +265,117 @@ const ParameterRegistration: FC<{param: string, components: Component[], compone
       }}
     >
       <Typography variant='body1' width={200}>
-        {param}
-        {loading && <CircularProgress size={20} sx={{marginLeft: '1rem', position: 'absolute'}} color='success'/>}
-      </Typography>
-      <MultipleSelectCheckmarks componentNames={components.map(comp => comp.component_name)} registered={registered} setRegistered={setRegistered} saveFunction={handleSave}/>
-      {/* <Button variant='outlined' color='success'>
-        {loading ? (<><CircularProgress size={20} sx={{marginRight: '1rem'}} color='success'/> Saving</>) : 'Save'}
-      </Button> */}
+        {param_name}
+      </Typography> 
+
+      <Button onClick={handleOpen}>More</Button>
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <Box
+            sx={{
+              maxWidth: '100%',
+              display: 'flex', 
+              alignItems: 'center'
+            }}
+          >
+            <SearchIcon sx={{ color: 'action.active', mr: 1}} />
+            <TextField 
+              fullWidth 
+              label="Search components to register..." 
+              id="search" 
+              size="small" 
+              sx={{
+                backgroundColor: '#fff'
+              }}
+              onChange={(e) => {
+                debouncedSearch(e.target.value)
+              }}
+              // onBlur={() => {
+              //   setShowFiltered(false)
+              // }}
+              onFocus={() => {
+                setShowFiltered(true)
+              }}
+            />
+          </Box>
+          {showFiltered && (
+            <Paper variant='outlined' sx={{padding: '0 3px'}}>
+              <List sx={{ width: '100%', maxHeight: 140, bgcolor: 'background.paper', overflow: 'scroll' }}>
+                {filteredComponents?.map((comp) => (
+                  <ListItem
+                    key={comp.id}
+                    disableGutters
+                  >
+                    <ListItemButton role={undefined} dense disableTouchRipple onClick={() => registerComponent(param_name, {component_id: comp.id, registered_by: []})}>
+                      <ListItemText primary={comp.component_name} />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          )}
+
+          
+          <Paper variant='outlined' sx={{padding: '1rem'}}>
+            <Alert
+              sx={{
+                marginBottom: "2rem",
+              }}
+              severity="info"
+            >
+              This list shows all the registered components to this parameter. Those which are outlined by green color are registered by you. The numbers on the
+              left show the number of users who registered that component
+            </Alert>
+            <Typography variant='h6'>Registered components</Typography>
+            <Box
+              sx={{
+                marginTop: '10px',
+                display: 'flex',
+                gap: '5px',
+                width: '100%',
+                flexWrap: 'wrap'
+              }}
+            >
+              {registered_components.map((comp) => (
+                <Chip 
+                  label={<GetComponentNameByID comp={comp}/>}
+                  variant="outlined"
+                  color={comp.registered_by.find((id) => id == user_id) ? 'success' : 'primary'}
+                  icon={<Chip label={comp.registered_by.length} size='small'/>}
+                  onClick={() => registerComponent(param_name, comp)}
+                />
+              ))}
+              {registered_components.length == 0 && (
+                <Alert
+                  severity="warning"
+                >
+                  There are no components that were registered to this parameter
+                </Alert>
+                // <Typography variant='caption'>There are no components that were registered to this parameter</Typography>
+              )}
+            </Box>
+          </Paper>
+
+        </Box>
+      </Modal>
     </Box>
+  )
+}
+
+const GetComponentNameByID: FC<{comp: RegisteredComponent}> = ({comp}) => {
+  const [name, setName] = useState<string>()
+  useEffect(() => {
+    fetch('https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents', {method: 'POST', body: JSON.stringify({'id': comp.component_id})})
+    .then((res) => res.json())
+    .then(result => setName(result.component_name))
+  }, [comp])
+  return (
+    name ? <>{name}</> : <CircularProgress size={10} sx={{marginRight: '1rem'}} color='success'/>
   )
 }
 

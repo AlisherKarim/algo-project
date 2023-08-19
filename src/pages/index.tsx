@@ -82,8 +82,8 @@ const createComponentTree = async (id: string) => {
   ret["parameters"] = {};
   for (const param in result.parameters) {
     ret["parameters"][param] = [];
-    for (const compID of result.parameters[param]) {
-      await ret["parameters"][param].push(await createComponentTree(compID));
+    for (const registered_component of result.parameters[param]) {
+      await ret["parameters"][param].push(await createComponentTree(registered_component['component_id']));
     }
   }
 
@@ -103,7 +103,6 @@ const getChosenList = (treeNode: any) => {
 
 // TODO: rename this funcitonal component as MainComponent (id: string) and create another component kind of MainComponentsList
 const MainList: FC = () => {
-  const [compTree, setCompTree] = useState<any>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMain, setLoadingMain] = useState<boolean>(false);
   const [complete, setComplete] = useState<boolean>(false);
@@ -117,7 +116,7 @@ const MainList: FC = () => {
   const [loadingCombinations, setLoadingComb] = useState<boolean>(false)
 
   useEffect(() => {
-    createComponentTree("a619cf2cc8b042c28f874c7629496cb7").then((res) => {
+    createComponentTree("6b0b42c16cbc4ab88ce7992c8e43c66d").then((res) => {
       setTree(res);
       setLoading(false);
     });
@@ -140,7 +139,7 @@ const MainList: FC = () => {
       {
         method: "POST",
         body: JSON.stringify({
-          main_id: "a619cf2cc8b042c28f874c7629496cb7",
+          main_id: "6b0b42c16cbc4ab88ce7992c8e43c66d",
           chosen_components: chosen_component_ids,
           combination: chosenCombination,
         }),
@@ -165,7 +164,7 @@ const MainList: FC = () => {
       {
         method: "POST",
         body: JSON.stringify({
-          main_id: "a619cf2cc8b042c28f874c7629496cb7",
+          main_id: "6b0b42c16cbc4ab88ce7992c8e43c66d",
           chosen_components: chosen_component_ids,
         }),
       }
@@ -204,27 +203,10 @@ const MainList: FC = () => {
                 severity="info"
                 // icon={false}
               >
-                {/* <Box
-                  sx={{
-                    display: "flex",
-                    gap: "10px",
-                    padding: "10px",
-                  }}
-                >
-                  <CopyrightIcon fontSize="small" />
-                  <Typography variant="body2">- component name</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: "10px",
-                    padding: "10px",
-                  }}
-                >
-                  <CodeIcon fontSize="small" />
-                  <Typography variant="body2">- parameter name</Typography>
-                </Box> */}
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed cursus felis a nisl feugiat dignissim. Etiam maximus leo tortor, eget tristique massa dignissim sit amet. Integer congue id ante in aliquet. Vivamus eleifend eget arcu ac cursus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae;
+                Here you can find some of the components that can be run as a main components and test other components for performance
+                or other qualities by comparing them using a graph. You can choose/unchoose some components that were registered already.
+                Then, all the possible tree comninations will be created among those components that were chosen.
+
               </Alert>
               {/* <ComponentTreeView /> */}
               <TreeView
@@ -237,6 +219,7 @@ const MainList: FC = () => {
                   compNode={tree}
                   setChosen={setChosen}
                   chosenList={chosen_component_ids}
+                  isRoot={true}
                 />
               </TreeView>
             </>
@@ -566,7 +549,8 @@ const CreateNodeItem: FC<{
   compNode: any;
   setChosen: (s: string[]) => void;
   chosenList: string[];
-}> = ({ compNode, setChosen, chosenList }) => {
+  isRoot: boolean
+}> = ({ compNode, setChosen, chosenList, isRoot }) => {
   return (
     <StyledTreeItem
       nodeId={compNode.component.id}
@@ -574,12 +558,13 @@ const CreateNodeItem: FC<{
         <Typography variant="body2" sx={{ fontWeight: "bolder", flexGrow: 1 }}>
           {compNode.component.component_signature +
             (compNode.component.parameters.length > 0
-              ? `<${compNode.component.parameters.join(",")}>`
+              ? `<${compNode.component.parameters.map((param: string) => '$' + param).join(",")}>`
               : "")}
         </Typography>
       }
       labelIcon={CopyrightIcon}
       chosen={
+        isRoot ? <></> :
         <Checkbox
           checked={
             chosenList.find((id) => id == compNode.component.id) != undefined
@@ -608,6 +593,7 @@ const CreateNodeItem: FC<{
               setChosen={setChosen}
               chosenList={chosenList}
               key={nd.component.id}
+              isRoot = {false}
             />
           ))}
         </StyledTreeItem>

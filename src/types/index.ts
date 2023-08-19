@@ -14,6 +14,11 @@ export interface Component {
   keywords: string[]
 }
 
+export interface RegisteredComponent {
+  component_id: string,
+  registered_by: string[]
+}
+
 export interface ITransaction {
   key: string,
   name: string,
