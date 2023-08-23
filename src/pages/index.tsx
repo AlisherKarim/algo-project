@@ -12,6 +12,10 @@ import {
   FormControl,
   Grid,
   InputLabel,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
   MenuItem,
   Paper,
   Select,
@@ -68,7 +72,7 @@ const createComponentTree = async (id: string) => {
     "https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents",
     {
       method: "POST",
-      body: JSON.stringify({'id': id}),
+      body: JSON.stringify({ id: id }),
     }
   ).then((res) => res.json());
 
@@ -83,7 +87,9 @@ const createComponentTree = async (id: string) => {
   for (const param in result.parameters) {
     ret["parameters"][param] = [];
     for (const registered_component of result.parameters[param]) {
-      await ret["parameters"][param].push(await createComponentTree(registered_component['component_id']));
+      await ret["parameters"][param].push(
+        await createComponentTree(registered_component["component_id"])
+      );
     }
   }
 
@@ -107,13 +113,20 @@ const MainList: FC = () => {
   const [loadingMain, setLoadingMain] = useState<boolean>(false);
   const [complete, setComplete] = useState<boolean>(false);
   const [treeCombinations, setComninations] = useState<string[]>([]);
+  const [combinationsList, setCombinationsList] = useState<string[][]>([]);
   const [chosenCombination, setChosenCombination] = useState<string>();
+
+  const [possibleComponents, setPossibleComponents] = useState<Set<string>[]>(
+    []
+  );
+  const [chosenComponents, setChosenComponents] = useState<string[]>([]);
+
   const [url, setUrl] = useState<string>();
 
   const [tree, setTree] = useState<any>();
   const [chosen_component_ids, setChosen] = useState<string[]>([]);
 
-  const [loadingCombinations, setLoadingComb] = useState<boolean>(false)
+  const [loadingCombinations, setLoadingComb] = useState<boolean>(false);
 
   useEffect(() => {
     createComponentTree("6b0b42c16cbc4ab88ce7992c8e43c66d").then((res) => {
@@ -122,6 +135,7 @@ const MainList: FC = () => {
     });
   }, []);
   useEffect(() => {
+    console.log(tree);
     if (tree) setChosen(getChosenList(tree));
   }, [tree]);
   useEffect(() => {
@@ -157,8 +171,24 @@ const MainList: FC = () => {
       });
   };
 
+  // returns array of components for the respective param_names
+  const parseInput = (input: string) => {
+    const startIdx = input.indexOf("<");
+    const endIdx = input.lastIndexOf(">");
+
+    if (startIdx !== -1 && endIdx !== -1) {
+      const classNamesStr = input.substring(startIdx + 1, endIdx);
+      const classNames = classNamesStr
+        .split(",")
+        .map((className) => className.trim().split("::").slice(-1)[0]);
+      return classNames;
+    } else {
+      return [];
+    }
+  };
+
   const submitHandler = () => {
-    setLoadingComb(true)
+    setLoadingComb(true);
     fetch(
       "https://dog5x4pmlc.execute-api.us-east-1.amazonaws.com/default/cppc-compiler",
       {
@@ -171,16 +201,39 @@ const MainList: FC = () => {
     )
       .then(async (res) => {
         if (res.status == 200) {
+          // TODO: check if the result is empty ([])
+
           const body = await res.json();
           // console.log(body.combinations.split('\'').filter((s: string, index: number) => index % 2 == 1))
           const combinations = body.message
             .split("'")
             .filter((s: string, index: number) => index % 2 == 1);
+
+          // init
+          const tempList: Set<string>[] = [];
+          for (let i = 0; i < parseInput(combinations[0]).length; i++)
+            tempList.push(new Set<string>());
+          console.log(tempList);
+          setChosenComponents(
+            Array<string>(parseInput(combinations[0]).length)
+          );
+
+          combinationsList.splice(0, combinationsList.length);
+          for (const comb of combinations) {
+            console.log(comb);
+            const parsed = parseInput(comb);
+            combinationsList.push(parsed);
+            parsed.forEach((parsedComponentName, index) =>
+              tempList[index].add(parsedComponentName)
+            );
+          }
+          setPossibleComponents(tempList);
+
           setComplete(true);
           setComninations(combinations);
           setChosenCombination(combinations[0]);
         }
-        setLoadingComb(false)
+        setLoadingComb(false);
       })
       .catch((err) => {
         console.log(err);
@@ -191,7 +244,7 @@ const MainList: FC = () => {
     <React.Fragment>
       <Card>
         <CardContent>
-          <Typography variant="h5" component="h5" marginBottom={'1rem'}>
+          <Typography variant="h5" component="h5" marginBottom={"1rem"}>
             Choose main component
           </Typography>
           {!loading ? (
@@ -203,10 +256,12 @@ const MainList: FC = () => {
                 severity="info"
                 // icon={false}
               >
-                Here you can find some of the components that can be run as a main components and test other components for performance
-                or other qualities by comparing them using a graph. You can choose/unchoose some components that were registered already.
-                Then, all the possible tree comninations will be created among those components that were chosen.
-
+                Here you can find some of the components that can be run as a
+                main components and test other components for performance or
+                other qualities by comparing them using a graph. You can
+                choose/unchoose some components that were registered already.
+                Then, all the possible tree comninations will be created among
+                those components that were chosen.
               </Alert>
               {/* <ComponentTreeView /> */}
               <TreeView
@@ -244,7 +299,7 @@ const MainList: FC = () => {
             <CircularProgress
               size={20}
               sx={{ marginRight: "1rem" }}
-              color='info'
+              color="info"
             />{" "}
             Loading components...
           </>
@@ -255,33 +310,102 @@ const MainList: FC = () => {
 
       <Box>
         {complete && (
-          <FormControl fullWidth sx={{ margin: "2rem 0" }}>
-            <InputLabel id="demo-simple-select-label">Possible combinations</InputLabel>
-            <Select
-              labelId="demo-simple-select-label"
-              id="demo-simple-select"
-              value={chosenCombination}
-              label="Combination"
-              onChange={handleChange}
-              sx={{backgroundColor: '#fff'}}
+          <Paper
+            sx={{
+              padding: "5px",
+              marginTop: "1rem",
+            }}
+          >
+            <Alert
+              sx={{
+                marginBottom: "5px",
+                marginTop: "1rem",
+              }}
+              severity="info"
             >
-              {treeCombinations.map((comb, ind) => (
-                <MenuItem value={comb} key={ind}>
-                  {comb}
-                </MenuItem>
-              ))}
-            </Select>
-            <Button onClick={handleCreate}>
-              {loadingMain && (
-                <CircularProgress
-                  size={20}
-                  sx={{ marginRight: "1rem" }}
-                  color="success"
-                />
+              Select component from each column
+            </Alert>
+            <Paper
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                // justifyContent: 'space-evenly',
+                marginTop: "1rem",
+              }}
+            >
+              {tree["component"]["parameters"].map(
+                (param_name: string, param_index: number) => (
+                  <Paper key={param_name} sx={{ flex: "1" }}>
+                    <List
+                      sx={{
+                        width: "100%",
+                        maxHeight: 140,
+                        bgcolor: "background.paper",
+                        overflow: "scroll",
+                      }}
+                    >
+                      {Array.from(possibleComponents[param_index]).map(
+                        (component, idx) => (
+                          <ListItem
+                            key={
+                              "combination-list-item-" + param_index + "-" + idx
+                            }
+                            disableGutters
+                          >
+                            <ListItemButton
+                              selected={
+                                chosenComponents[param_index] == component
+                              }
+                              role={undefined}
+                              dense
+                              disableTouchRipple
+                              onClick={() => {
+                                console.log(chosenComponents);
+                                chosenComponents[param_index] = component;
+                                setChosenComponents(chosenComponents);
+                              }}
+                            >
+                              <ListItemText primary={component} />
+                            </ListItemButton>
+                          </ListItem>
+                        )
+                      )}
+                    </List>
+                  </Paper>
+                )
               )}
-              <span>Create Main</span>
-            </Button>
-          </FormControl>
+            </Paper>
+
+            <FormControl fullWidth sx={{ margin: "2rem 0" }}>
+              <InputLabel id="demo-simple-select-label">
+                Possible combinations
+              </InputLabel>
+              <Select
+                labelId="demo-simple-select-label"
+                id="demo-simple-select"
+                value={chosenCombination}
+                label="Combination"
+                onChange={handleChange}
+                sx={{ backgroundColor: "#fff" }}
+              >
+                {treeCombinations.map((comb, ind) => (
+                  <MenuItem value={comb} key={ind}>
+                    {comb}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Button onClick={handleCreate}>
+                {loadingMain && (
+                  <CircularProgress
+                    size={20}
+                    sx={{ marginRight: "1rem" }}
+                    color="success"
+                  />
+                )}
+                <span>Create Main</span>
+              </Button>
+            </FormControl>
+          </Paper>
         )}
 
         {url && <MainBlock wasmUrl={url} />}
@@ -289,7 +413,6 @@ const MainList: FC = () => {
     </React.Fragment>
   );
 };
-
 
 interface DataPoint {
   x: number;
@@ -301,8 +424,8 @@ const MainBlock: FC<{ wasmUrl: string }> = ({ wasmUrl }) => {
   const [data, setData] = useState<DataPoint[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [module, setModule] = useState<any>();
-  const [minInput, setMinInput] = useState<number>(100)
-  const [maxInput, setMaxInput] = useState<number>(10000)
+  const [minInput, setMinInput] = useState<number>(100);
+  const [maxInput, setMaxInput] = useState<number>(10000);
 
   const init = async () => {
     const md = await getModule(wasmUrl);
@@ -336,7 +459,7 @@ const MainBlock: FC<{ wasmUrl: string }> = ({ wasmUrl }) => {
   };
 
   return (
-    <Paper sx={{ padding: '1rem' }}>
+    <Paper sx={{ padding: "1rem" }}>
       <Alert
         sx={{
           marginBottom: "2rem",
@@ -345,7 +468,15 @@ const MainBlock: FC<{ wasmUrl: string }> = ({ wasmUrl }) => {
       >
         Change the following two numbers to give custom input range
       </Alert>
-      <Paper variant="outlined" sx={{padding: '1rem', display: 'flex', gap: '1rem', marginBottom: '1rem'}}>
+      <Paper
+        variant="outlined"
+        sx={{
+          padding: "1rem",
+          display: "flex",
+          gap: "1rem",
+          marginBottom: "1rem",
+        }}
+      >
         <TextField
           id="min-input"
           label="Minimum Input Size"
@@ -386,9 +517,9 @@ const MainBlock: FC<{ wasmUrl: string }> = ({ wasmUrl }) => {
           <span>Run</span>
         </Button>
       </Paper>
-      <Card sx={{marginBottom: '3rem'}}>
+      <Card sx={{ marginBottom: "3rem" }}>
         <CardContent>
-          {data.length != 0 && 
+          {data.length != 0 && (
             <>
               <Typography variant="h5" component="h5">
                 Comparison between two chosen algorithms
@@ -396,7 +527,7 @@ const MainBlock: FC<{ wasmUrl: string }> = ({ wasmUrl }) => {
               <Divider sx={{ marginTop: "1rem" }} />
               <Graph data={data} />
             </>
-          }
+          )}
         </CardContent>
       </Card>
     </Paper>
@@ -549,7 +680,7 @@ const CreateNodeItem: FC<{
   compNode: any;
   setChosen: (s: string[]) => void;
   chosenList: string[];
-  isRoot: boolean
+  isRoot: boolean;
 }> = ({ compNode, setChosen, chosenList, isRoot }) => {
   return (
     <StyledTreeItem
@@ -558,26 +689,34 @@ const CreateNodeItem: FC<{
         <Typography variant="body2" sx={{ fontWeight: "bolder", flexGrow: 1 }}>
           {compNode.component.component_signature +
             (compNode.component.parameters.length > 0
-              ? `<${compNode.component.parameters.map((param: string) => '$' + param).join(",")}>`
+              ? `<${compNode.component.parameters
+                  .map((param: string) => "$" + param)
+                  .join(",")}>`
               : "")}
         </Typography>
       }
       labelIcon={CopyrightIcon}
       chosen={
-        isRoot ? <></> :
-        <Checkbox
-          checked={
-            chosenList.find((id) => id == compNode.component.id) != undefined
-          }
-          onChange={(e) => {
-            if (
-              chosenList.find((id) => id == compNode.component.id) == undefined
-            )
-              setChosen([...chosenList, compNode.component.id]);
-            else
-              setChosen(chosenList.filter((id) => id != compNode.component.id));
-          }}
-        />
+        isRoot ? (
+          <></>
+        ) : (
+          <Checkbox
+            checked={
+              chosenList.find((id) => id == compNode.component.id) != undefined
+            }
+            onChange={(e) => {
+              if (
+                chosenList.find((id) => id == compNode.component.id) ==
+                undefined
+              )
+                setChosen([...chosenList, compNode.component.id]);
+              else
+                setChosen(
+                  chosenList.filter((id) => id != compNode.component.id)
+                );
+            }}
+          />
+        )
       }
     >
       {Object.keys(compNode.parameters).map((param: any) => (
@@ -593,7 +732,7 @@ const CreateNodeItem: FC<{
               setChosen={setChosen}
               chosenList={chosenList}
               key={nd.component.id}
-              isRoot = {false}
+              isRoot={false}
             />
           ))}
         </StyledTreeItem>
