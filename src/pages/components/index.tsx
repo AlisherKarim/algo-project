@@ -42,8 +42,8 @@ const ComponentsPage: FC<{
 
   const debouncedSearch = _.debounce((term) => {
     fetch(
-      "https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents",
-      { method: "POST", body: JSON.stringify({ keyword: term }) }
+      `https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents?keyword=${term}`,
+      { method: "GET" }
     )
       .then((result) => result.json())
       .then((res) => {
@@ -161,8 +161,8 @@ export async function getServerSideProps(
   try {
     const user = await Auth.currentAuthenticatedUser();
     const components = await fetch(
-      "https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents",
-      { method: "POST", body: JSON.stringify({ keyword: "" }) }
+      `https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents?keyword=${''}`,
+      { method: "GET" }
     ).then((result) => result.json());
     return {
       props: {

@@ -69,10 +69,9 @@ const createComponentTree = async (id: string) => {
   const ret: any = {};
   ret.is_chosen = true;
   ret.component = await fetch(
-    "https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents",
+    `https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents?id=${id}`,
     {
-      method: "POST",
-      body: JSON.stringify({ id: id }),
+      method: "GET",
     }
   ).then((res) => res.json());
 

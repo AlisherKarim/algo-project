@@ -1,6 +1,9 @@
 import { NavBar } from "@/components/Navbar";
 import Unauthorized from "@/components/Unauthorized";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -26,6 +29,7 @@ import {
   Typography,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { withSSRContext } from "aws-amplify";
 import { FC, useEffect, useState } from "react";
 import Link from "next/link";
@@ -45,18 +49,20 @@ const ComponentsPage: FC<{
 
   const debouncedSearch = _.debounce((term) => {
     fetch(
-      "https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents",
-      { method: "POST", body: JSON.stringify({ keyword: term }) }
+      `https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents?keyword=${term}`,
+      { method: "GET" }
     )
-      .then((result) => result.json())
+      .then((result) => {
+        return result.json();
+      })
       .then((res) => {
-        console.log(term);
-        console.log(res);
         setFilteredComponents(res);
-      });
+      })
+      .catch((err) => console.log(err));
   }, 300);
 
   const registerComponent = (param_name: string, comp: RegisteredComponent) => {
+    setLoading(true);
     fetch(
       `https://9dkyg96d16.execute-api.us-east-1.amazonaws.com/default/componentRegistration`,
       {
@@ -73,6 +79,7 @@ const ComponentsPage: FC<{
       .then((result) => {
         console.log(result);
         setRegistered(result.parameters);
+        setLoading(false);
       })
       .catch((err) => console.log(err));
   };
@@ -192,6 +199,20 @@ const ComponentsPage: FC<{
                 </Button>
               </ButtonGroup>
             </Box>
+            {!loading && registered_ids && (
+              <Box
+                sx={{
+                  marginTop: "1rem",
+                }}
+              >
+                <ParameterInfo
+                  user_id={username}
+                  component={component}
+                  registerComponent={registerComponent}
+                  registered_components={registered_ids}
+                />
+              </Box>
+            )}
             <Box
               sx={{
                 display: "flex",
@@ -207,34 +228,7 @@ const ComponentsPage: FC<{
                   color="success"
                 />
               )}
-              {!loading && registered_ids && (
-                <>
-                  {component.parameters.length != 0 && (
-                    <Alert severity="info">
-                      Click 'More' to register your own components or see the
-                      full list of components registered to that parameter
-                    </Alert>
-                  )}
-                  {component.parameters.map((param) => {
-                    return (
-                      <Paper
-                        variant="outlined"
-                        sx={{ paddingLeft: "1rem", paddingRight: "1rem" }}
-                        key={`${component.id}/${param}`}
-                      >
-                        {/* <ParameterRegistration param={param} components={components} component={component} registered_ids={registered_ids[param]}/> */}
-                        <RegisterComponent
-                          user_id={username}
-                          component={component}
-                          param_name={param}
-                          registered_components={registered_ids[param]}
-                          registerComponent={registerComponent}
-                        />
-                      </Paper>
-                    );
-                  })}
-                </>
-              )}
+
               {component.parameters.length == 0 && (
                 <Alert severity="warning">
                   This components does not have any parameters
@@ -252,15 +246,8 @@ const RegisterComponent: FC<{
   user_id: string;
   component: Component;
   param_name: string;
-  registered_components: RegisteredComponent[];
   registerComponent: (param_name: string, comp: RegisteredComponent) => void;
-}> = ({
-  user_id,
-  component,
-  param_name,
-  registered_components,
-  registerComponent,
-}) => {
+}> = ({ user_id, component, param_name, registerComponent }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -279,17 +266,17 @@ const RegisterComponent: FC<{
     gap: "10px",
   };
 
-  const [showFiltered, setShowFiltered] = useState<boolean>(false);
-  const [filteredComponents, setFilteredComponents] = useState<Component[]>();
+  const [filteredComponents, setFilteredComponents] = useState<Component[]>([]);
   const debouncedSearch = _.debounce((term) => {
     fetch(
-      `https://kuaunfdp12.execute-api.us-east-1.amazonaws.com/default/componentRegistrationSearch?id=${component.id}&param_name=${param_name}&search_term=${term}`,
+      `https://kuaunfdp12.execute-api.us-east-1.amazonaws.com/default/componentRegistrationSearch?id=${component.id}&param_name=${param_name}&search_term=${term}&user_id=${user_id}`,
       { method: "GET" }
     )
       .then((result) => result.json())
       .then((res) => {
         setFilteredComponents(res);
-      });
+      })
+      .catch((err) => console.log(err));
   }, 300);
 
   useEffect(() => {
@@ -297,18 +284,15 @@ const RegisterComponent: FC<{
   }, []);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
-    >
-      <Typography variant="body1" width={200}>
-        {param_name}
-      </Typography>
-
-      <Button onClick={handleOpen}>More</Button>
+    <Box>
+      <Button
+        size="small"
+        sx={{ marginBottom: "0.5rem" }}
+        variant="contained"
+        onClick={handleOpen}
+      >
+        Register new components
+      </Button>
       <Modal
         open={open}
         onClose={handleClose}
@@ -335,17 +319,15 @@ const RegisterComponent: FC<{
               onChange={(e) => {
                 debouncedSearch(e.target.value);
               }}
-              onFocus={() => {
-                setShowFiltered(true);
-              }}
             />
           </Box>
-          {showFiltered && (
+
+          {filteredComponents.length > 0 ? (
             <Paper variant="outlined" sx={{ padding: "0 3px" }}>
               <List
                 sx={{
                   width: "100%",
-                  maxHeight: 140,
+                  maxHeight: 300,
                   bgcolor: "background.paper",
                   overflow: "scroll",
                 }}
@@ -356,12 +338,13 @@ const RegisterComponent: FC<{
                       role={undefined}
                       dense
                       disableTouchRipple
-                      onClick={() =>
+                      onClick={() => {
                         registerComponent(param_name, {
                           component_id: comp.id,
                           registered_by: [],
-                        })
-                      }
+                        });
+                        handleClose();
+                      }}
                     >
                       <ListItemText primary={comp.component_name} />
                     </ListItemButton>
@@ -369,67 +352,211 @@ const RegisterComponent: FC<{
                 ))}
               </List>
             </Paper>
+          ) : (
+            <Alert severity="info">No component found</Alert>
           )}
-
-          <Paper variant="outlined" sx={{ padding: "1rem" }}>
-            <Alert
-              sx={{
-                marginBottom: "2rem",
-              }}
-              severity="info"
-            >
-              This list shows all the registered components to this parameter.
-              Those which are outlined by green color are registered by you. The
-              numbers on the left show the number of users who registered that
-              component
-            </Alert>
-            <Typography variant="h6">Registered components</Typography>
-            <Box
-              sx={{
-                marginTop: "10px",
-                display: "flex",
-                gap: "5px",
-                width: "100%",
-                flexWrap: "wrap",
-              }}
-            >
-              {registered_components.map((comp) => (
-                <Chip
-                  label={<GetComponentNameByID comp={comp} />}
-                  variant="outlined"
-                  color={
-                    comp.registered_by.find((id) => id == user_id)
-                      ? "success"
-                      : "primary"
-                  }
-                  icon={<Chip label={comp.registered_by.length} size="small" />}
-                  onClick={() => registerComponent(param_name, comp)}
-                />
-              ))}
-              {registered_components.length == 0 && (
-                <Alert severity="warning">
-                  There are no components that were registered to this parameter
-                </Alert>
-                // <Typography variant='caption'>There are no components that were registered to this parameter</Typography>
-              )}
-            </Box>
-          </Paper>
         </Box>
       </Modal>
     </Box>
   );
 };
 
-const GetComponentNameByID: FC<{ comp: RegisteredComponent }> = ({ comp }) => {
+const ParameterInfo: FC<{
+  user_id: string;
+  component: Component;
+  registerComponent: (param_name: string, comp: RegisteredComponent) => void;
+  registered_components: any;
+}> = ({ user_id, component, registerComponent, registered_components }) => {
+  useEffect(() => {
+    console.log(registered_components);
+  }, []);
+
+  return (
+    <>
+      {component.parameters.map((param_name) => (
+        <Accordion key={`${component.id}-${param_name}`}>
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            aria-controls="panel1a-content"
+            id="panel1a-header"
+          >
+            <Typography variant="body2" fontWeight={600}>
+              {param_name}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <RegisterComponent
+              user_id={user_id}
+              param_name={param_name}
+              registerComponent={registerComponent}
+              component={component}
+            />
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: "1rem",
+              }}
+            >
+              <Box
+                sx={{
+                  flexGrow: "1",
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ marginBottom: "0.5rem" }}>
+                  Components registered by you
+                </Typography>
+                <TableContainer
+                  component={Paper}
+                  sx={{ boxShadow: "none", border: "1px solid gainsboro" }}
+                >
+                  {registered_components &&
+                  registered_components[param_name].filter((comp: any) =>
+                    comp.registered_by.find(
+                      (reg_id: string) => reg_id == user_id
+                    )
+                  ).length == 0 ? (
+                    <Alert severity="warning">
+                      You didn't register any component
+                    </Alert>
+                  ) : (
+                    <Table aria-label="components registered by the user">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>#</TableCell>
+                          <TableCell align="right">Component</TableCell>
+                          <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {registered_components ? (
+                          registered_components[param_name]
+                            .filter((comp: any) =>
+                              comp.registered_by.find(
+                                (reg_id: string) => reg_id == user_id
+                              )
+                            )
+                            .map((component_obj: any, index: number) => {
+                              return (
+                                <TableRow
+                                  key={component_obj.id}
+                                  sx={{
+                                    "&:last-child td, &:last-child th": {
+                                      border: 0,
+                                    },
+                                  }}
+                                >
+                                  <TableCell component="th" scope="row">
+                                    {index + 1}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {
+                                      <GetComponentNameByID
+                                        id={component_obj.component_id}
+                                      />
+                                    }
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    <Button
+                                      size="small"
+                                      onClick={() =>
+                                        registerComponent(
+                                          param_name,
+                                          component_obj
+                                        )
+                                      }
+                                    >
+                                      Unregister
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })
+                        ) : (
+                          <CircularProgress />
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
+                </TableContainer>
+              </Box>
+
+              <Box
+                sx={{
+                  flexGrow: "1",
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ marginBottom: "0.5rem" }}>
+                  All the components registered
+                </Typography>
+                <TableContainer
+                  component={Paper}
+                  sx={{ boxShadow: "none", border: "1px solid gainsboro" }}
+                >
+                  <Table aria-label="all the registered components">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>#</TableCell>
+                        <TableCell align="right">Component</TableCell>
+                        <TableCell align="right">Registered by</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {registered_components ? (
+                        registered_components[param_name].map(
+                          (component_obj: any, index: number) => (
+                            <TableRow
+                              key={component_obj.id}
+                              sx={{
+                                "&:last-child td, &:last-child th": {
+                                  border: 0,
+                                },
+                              }}
+                            >
+                              <TableCell component="th" scope="row">
+                                {index + 1}
+                              </TableCell>
+                              <TableCell align="right">
+                                {
+                                  <GetComponentNameByID
+                                    id={component_obj.component_id}
+                                  />
+                                }
+                              </TableCell>
+                              <TableCell align="right">
+                                {component_obj.registered_by.length +
+                                  " user(s)"}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        )
+                      ) : (
+                        <CircularProgress />
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </Box>
+          </AccordionDetails>
+        </Accordion>
+      ))}
+    </>
+  );
+};
+
+const GetComponentNameByID: FC<{ id: string }> = ({ id }) => {
   const [name, setName] = useState<string>();
   useEffect(() => {
+    if (!id) return;
     fetch(
-      "https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents",
-      { method: "POST", body: JSON.stringify({ id: comp.component_id }) }
+      `https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents?id=${id}`,
+      { method: "GET" }
     )
       .then((res) => res.json())
       .then((result) => setName(result.component_name));
-  }, [comp]);
+  }, [id]);
   return name ? (
     <>{name}</>
   ) : (
@@ -447,12 +574,12 @@ export async function getServerSideProps(
   try {
     const user = await Auth.currentAuthenticatedUser();
     const component = await fetch(
-      "https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents",
-      { method: "POST", body: JSON.stringify({ id: context?.params.id }) }
+      `https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents?id=${context?.params.id}`,
+      { method: "GET" }
     ).then((result) => result.json());
     const components = await fetch(
-      "https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents",
-      { method: "POST", body: JSON.stringify({ keyword: "" }) }
+      `https://rx8u7i66ib.execute-api.us-east-1.amazonaws.com/default/getComponents?keyword=${""}`,
+      { method: "GET" }
     ).then((result) => result.json());
 
     return {
