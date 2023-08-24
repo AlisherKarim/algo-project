@@ -418,7 +418,7 @@ const ParameterInfo: FC<{
                     )
                   ).length == 0 ? (
                     <Alert severity="warning">
-                      You didn't register any component
+                      You did&apos;t register any component
                     </Alert>
                   ) : (
                     <Table aria-label="components registered by the user">

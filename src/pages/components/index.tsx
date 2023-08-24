@@ -80,7 +80,7 @@ const ComponentsPage: FC<{
             }}
           >
             <Alert severity="info">
-              Type keywords to search for components. For example, 'algorithms'
+              Type keywords to search for components. For example, &apos; algorithms &apos;
             </Alert>
             <Box
               sx={{
