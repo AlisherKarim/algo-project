@@ -31,10 +31,11 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { withSSRContext } from "aws-amplify";
-import { FC, useEffect, useState } from "react";
+import { FC, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { Component, RegisteredComponent } from "@/types";
 import _ from "lodash";
+import { ProjectContext } from "@/context";
 
 const ComponentsPage: FC<{
   authenticated: boolean;
@@ -46,6 +47,12 @@ const ComponentsPage: FC<{
     useState<Component[]>(components);
   const [registered_ids, setRegistered] = useState<any>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
+
+  const projectContext = useContext(ProjectContext);
+
+  useEffect(() => {
+    projectContext.setLoading(false);
+  }, [])
 
   const debouncedSearch = _.debounce((term) => {
     fetch(
@@ -62,7 +69,7 @@ const ComponentsPage: FC<{
   }, 300);
 
   const registerComponent = (param_name: string, comp: RegisteredComponent) => {
-    setLoading(true);
+    // setLoading(true);
     fetch(
       `https://9dkyg96d16.execute-api.us-east-1.amazonaws.com/default/componentRegistration`,
       {
@@ -79,7 +86,7 @@ const ComponentsPage: FC<{
       .then((result) => {
         console.log(result);
         setRegistered(result.parameters);
-        setLoading(false);
+        // setLoading(false);
       })
       .catch((err) => console.log(err));
   };

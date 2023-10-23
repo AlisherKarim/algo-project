@@ -10,6 +10,7 @@ import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import { NavBar } from "@/components/Navbar";
 import Link from "next/link";
+import { ProjectContext } from "@/context";
 
 const LoginPage: FC<{
   authenticated: boolean;
@@ -18,6 +19,11 @@ const LoginPage: FC<{
 }> = ({ authenticated, username, name }) => {
   const { route } = useAuthenticator((context) => [context.route]);
   const router = useRouter();
+  const projectContext = React.useContext(ProjectContext);
+
+  useEffect(() => {
+    projectContext.setLoading(false);
+  }, [])
 
   const handleLogOut = () => {
     Auth.signOut()

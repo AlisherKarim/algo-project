@@ -1,6 +1,6 @@
 import { FileViewer } from "@/components/FileViewer";
 import { FolderView } from "@/components/FolderView";
-import React, { FC, useState } from "react";
+import React, { FC, useContext, useEffect, useState } from "react";
 import Splitter, { SplitDirection } from "@devbookhq/splitter";
 import { TransactionList } from "@/components/TransactionList";
 import styles from "@/styles/Home.module.css";
@@ -11,6 +11,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import Link from "next/link";
 import { FileUploader } from "@/components/FileUploader";
 import { Component, ITransaction } from "@/types";
+import { ProjectContext } from "@/context";
 
 const Dashboard: FC<{
   authenticated: boolean;
@@ -22,6 +23,11 @@ const Dashboard: FC<{
   const [selectedComponent, setSelected] = useState<string>();
   const [isYaml, setIsYaml] = useState<boolean>(false);
   const [userComponents, setUserComponents] = useState<Component[]>(components);
+  const projectContext = useContext(ProjectContext);
+
+  useEffect(() => {
+    projectContext.setLoading(false);
+  }, [])
 
   const updateComponents = () => {
     fetch(

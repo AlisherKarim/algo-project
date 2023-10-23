@@ -17,6 +17,7 @@ import { useAuthenticator } from '@aws-amplify/ui-react';
 import { Chip } from '@mui/material';
 import { Auth } from 'aws-amplify';
 import Link from 'next/link';
+import { ProjectContext } from '@/context';
 
 const pages = [
   {
@@ -88,6 +89,7 @@ export const NavBar: React.FC = () => {
   const { route } = useAuthenticator((context) => [context.route]);
   const router = useRouter()
   const {user, signOut} = useAuthenticator((context) => [context.user])
+  const { setLoading } = React.useContext(ProjectContext);
 
   const signOutAndMain = () => {
     Auth.signOut().then((res) => {
@@ -169,7 +171,11 @@ export const NavBar: React.FC = () => {
               }}
             >
               {pages.map((page) => (
-                <MenuItem key={page.name} onClick={() => {router.push(page.path); handleCloseNavMenu()}}>
+                <MenuItem key={page.name} onClick={() => {
+                  router.push(page.path);
+                  handleCloseNavMenu();
+                  setLoading(true);
+                }}>
                   <Typography textAlign="center">{page.name}</Typography>
                 </MenuItem>
               ))}
@@ -198,7 +204,10 @@ export const NavBar: React.FC = () => {
             {pages.map((page) => (
               <Button
                 key={page.name}
-                onClick={() => router.push(`${page.path}`)}
+                onClick={() => {
+                  router.push(`${page.path}`)
+                  setLoading(true);
+                }}
                 sx={{ my: 2, color: 'inherit', display: 'block' }}
               >
                 {/* <Link href={`/${page}`}> */}

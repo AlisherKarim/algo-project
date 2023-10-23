@@ -27,10 +27,11 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { withSSRContext } from "aws-amplify";
-import { FC, useEffect, useState } from "react";
+import { FC, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { Component } from "@/types";
 import _ from "lodash";
+import { ProjectContext } from "@/context";
 
 const ComponentsPage: FC<{
   authenticated: boolean;
@@ -39,6 +40,12 @@ const ComponentsPage: FC<{
 }> = ({ authenticated, username, components }) => {
   const [filteredComponents, setFilteredComponents] =
     useState<Component[]>(components);
+  
+  const projectContext = useContext(ProjectContext);
+
+  useEffect(() => {
+    projectContext.setLoading(false);
+  }, [])
 
   const debouncedSearch = _.debounce((term) => {
     fetch(
@@ -132,7 +139,7 @@ const ComponentsPage: FC<{
                           hover={true}
                         >
                           <TableCell component="th" scope="row">
-                            <Link href={`/components/${component.id}`}>
+                            <Link href={`/components/${component.id}`} onClick={() => projectContext.setLoading(true)}>
                               {component.component_name}
                             </Link>
                           </TableCell>

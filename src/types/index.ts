@@ -24,3 +24,16 @@ export interface ITransaction {
   name: string,
   component: Component
 }
+
+export interface IAlert {
+  title: string,
+  severity: string,
+  text: string
+}
+
+export interface IContext {
+  isLoading: boolean,
+  setLoading: (_: boolean) => void,
+  alertMessage: IAlert,
+  setAlertMessage: (_: IAlert) => void
+}
