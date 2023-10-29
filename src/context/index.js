@@ -9,12 +9,18 @@ export const MainPageContextProvider = ({children}) => {
 
   const [mainComponents, setMainComponents] = useState([]);
   const [currentChosenComponent, setCurrentChosenComponent] = useState(null);
+  const [currentComponentTree, setCurrentComponentTree] = useState(null);
+  const [currentChosenList, setCurrentChosenList] = useState([]);
 
   const value = {
     mainComponents,
     setMainComponents,
     currentChosenComponent,
-    setCurrentChosenComponent
+    setCurrentChosenComponent,
+    currentComponentTree,
+    setCurrentComponentTree,
+    currentChosenList,
+    setCurrentChosenList
   }
 
   return (

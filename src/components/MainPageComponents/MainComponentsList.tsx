@@ -1,10 +1,20 @@
 import { MainPageContext } from "@/context";
-import { FC, useContext, useState } from "react";
+import { Component } from "@/types";
+import {
+  Alert,
+  Button,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
+  Skeleton,
+} from "@mui/material";
+import { FC, useContext, useEffect, useState } from "react";
 
-export const MainList: FC = () => {
+export const MainList: FC<{ mainComponents: Component[] }> = (props) => {
   // context variables
-  const mainPageContext = useContext(MainPageContext)
-
+  const mainPageContext = useContext(MainPageContext);
   // local variables
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMain, setLoadingMain] = useState<boolean>(false);
@@ -24,6 +34,10 @@ export const MainList: FC = () => {
   const [chosen_component_ids, setChosen] = useState<string[]>([]);
 
   const [loadingCombinations, setLoadingComb] = useState<boolean>(false);
+
+  useEffect(() => {
+    mainPageContext.setMainComponents(props.mainComponents);
+  }, []);
 
   // useEffect(() => {
   //   createComponentTree("6b0b42c16cbc4ab88ce7992c8e43c66d").then((res) => {
@@ -85,7 +99,7 @@ export const MainList: FC = () => {
   // };
 
   // const createTreeFromList = (s: string[][]) => {
-    
+
   // }
 
   // const submitHandler = () => {
@@ -295,7 +309,7 @@ export const MainList: FC = () => {
   //                   <TreeItem nodeId="StdSortAlgm2" label="StdSortAlgm" endIcon={<ArrowRightIcon />}></TreeItem>
   //                 </TreeItem>
   //               </TreeItem>
-                
+
   //               <TreeItem nodeId="DecreasingVector5" label="DecreasingVector">
   //                 <TreeItem nodeId="MergeSort6" label="MergeSort">
   //                   <TreeItem nodeId="MergeSort7" label="MergeSort" endIcon={<ArrowRightIcon />}></TreeItem>
@@ -347,12 +361,57 @@ export const MainList: FC = () => {
   //   </React.Fragment>
   // );
 
-  console.log(mainPageContext)
+  console.log(mainPageContext);
   return (
     <div>
-      {mainPageContext.mainComponents?.length === 0 && (
-        <>Empty</>
+      {props.mainComponents?.length === 0 ? (
+        <Alert
+          sx={{
+            marginBottom: "2rem",
+          }}
+          severity="warning"
+        >
+          Currently we don't have any component to test
+        </Alert>
+      ) : (
+        <>
+          <Alert
+            sx={{
+              marginBottom: "2rem",
+            }}
+            severity="info"
+          >
+            Here you can find some of the components that can be run as a main
+            components and test other components for performance or other
+            qualities by comparing them using a graph. You can choose/unchoose
+            some components that were registered already. Then, all the possible
+            tree comninations will be created among those components that were
+            chosen.
+          </Alert>
+
+          <FormControl>
+            <FormLabel id="demo-radio-buttons-group-label">Choose main component to test</FormLabel>
+            <RadioGroup
+              aria-labelledby="demo-radio-buttons-group-label"
+              defaultValue="female"
+              name="radio-buttons-group"
+            >
+              {props.mainComponents.map((component: Component) => {
+                return (
+                  <FormControlLabel
+                    // TODO: change this to component signature
+                    key={component.id}
+                    value={component.component_name}
+                    control={<Radio onSelect={(e) => console.log(e)} />}
+                    label={component.component_name}
+                    onInput={() => mainPageContext.setCurrentChosenComponent(component)}
+                  />
+                );
+              })}
+            </RadioGroup>
+          </FormControl>
+        </>
       )}
     </div>
-  )
+  );
 };

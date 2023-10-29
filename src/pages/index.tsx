@@ -1,5 +1,5 @@
 import Button from "@mui/material/Button";
-import { Storage } from "aws-amplify";
+import { Storage, withSSRContext } from "aws-amplify";
 import {
   Alert,
   AlertTitle,
@@ -17,6 +17,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Skeleton,
   TextField,
   Typography,
 } from "@mui/material";
@@ -47,10 +48,12 @@ import CodeIcon from "@mui/icons-material/Code";
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { MainPageContextProvider, ProjectContext } from "@/context";
+import { MainPageContext, MainPageContextProvider, ProjectContext } from "@/context";
 import { MainList } from "@/components/MainPageComponents/MainComponentsList";
+import { MainComponentBlock } from "@/components/MainPageComponents/MainComponentBlock";
+import { MainComponentCombinationsViewer } from "@/components/MainPageComponents/MainComponentCombinationsViewer";
 
-const MainPage: FC = () => {
+const MainPage: FC<{mainComponents: any[]}> = (props) => {
   const {isLoading, setLoading, alertMessage, setAlertMessage} = useContext(ProjectContext);
 
   useEffect(() => {
@@ -76,9 +79,11 @@ const MainPage: FC = () => {
             </Backdrop>
           }
 
-          <Paper elevation={0} variant="outlined" sx={{minHeight: "80vh", padding: "2rem"}}>
+          <Paper elevation={0} variant="outlined" sx={{minHeight: "50vh", padding: "2rem"}}>
             <MainPageContextProvider>
-              <MainList />
+              <MainList mainComponents={props.mainComponents}/>
+              <MainComponentBlock />
+              <MainComponentCombinationsViewer />
             </MainPageContextProvider>
           </Paper>
           
@@ -93,6 +98,49 @@ const MainPage: FC = () => {
   );
 };
 export default MainPage;
+
+
+export async function getServerSideProps(
+  context: { req?: any; res: any; modules?: any[] | undefined } | undefined
+) {
+  const { Auth } = withSSRContext(context);
+  try {
+    const user = await Auth.currentAuthenticatedUser();
+    const components = await fetch(
+      "https://0c5csak34j.execute-api.us-east-1.amazonaws.com/default/getMainComponents",
+      {
+        method: "GET",
+      }
+    ).then((result) => result.json());
+    return {
+      props: {
+        authenticated: true,
+        username: user.username,
+        mainComponents: components,
+      },
+    };
+  } catch (err) {
+    console.log(err)
+    context?.res.writeHead(302, { Location: "/login" });
+    context?.res.end();
+  }
+  return { props: {} };
+}
+
+
+
+
+
+
+
+
+
+
+
+/*
+* Get rid of the followings
+*/
+
 
 const createComponentTree = async (id: string) => {
   const ret: any = {};
@@ -282,173 +330,5 @@ const Graph: React.FC<LineChartProps> = ({ data }) => {
         dot={false}
       />
     </LineChart>
-  );
-};
-
-declare module "react" {
-  interface CSSProperties {
-    "--tree-view-color"?: string;
-    "--tree-view-bg-color"?: string;
-  }
-}
-
-type StyledTreeItemProps = TreeItemProps & {
-  bgColor?: string;
-  bgColorForDarkMode?: string;
-  color?: string;
-  colorForDarkMode?: string;
-  labelIcon: React.ElementType<SvgIconProps>;
-  chosen?: ReactNode;
-  labelText: string | ReactNode;
-};
-
-const StyledTreeItemRoot = styled(TreeItem)(({ theme }) => ({
-  color: theme.palette.text.secondary,
-  [`& .${treeItemClasses.content}`]: {
-    color: theme.palette.text.secondary,
-    borderTopRightRadius: theme.spacing(2),
-    borderBottomRightRadius: theme.spacing(2),
-    paddingRight: theme.spacing(1),
-    fontWeight: theme.typography.fontWeightMedium,
-    "&.Mui-expanded": {
-      fontWeight: theme.typography.fontWeightRegular,
-    },
-    "&:hover": {
-      backgroundColor: theme.palette.action.hover,
-    },
-    "&.Mui-focused, &.Mui-selected, &.Mui-selected.Mui-focused": {
-      backgroundColor: `var(--tree-view-bg-color, ${theme.palette.action.selected})`,
-      color: "var(--tree-view-color)",
-    },
-    [`& .${treeItemClasses.label}`]: {
-      fontWeight: "inherit",
-      color: "inherit",
-    },
-    marginLeft: 0,
-    [`& .${treeItemClasses.content}`]: {
-      paddingLeft: theme.spacing(2),
-    },
-  },
-  // [`& .${treeItemClasses.group}`]: {
-  //   marginLeft: 0,
-  //   [`& .${treeItemClasses.content}`]: {
-  //     paddingLeft: theme.spacing(2),
-  //   },
-  // },
-}));
-
-function StyledTreeItem(props: StyledTreeItemProps) {
-  const theme = useTheme();
-  const {
-    bgColor,
-    color,
-    labelIcon: LabelIcon,
-    chosen,
-    labelText,
-    colorForDarkMode,
-    bgColorForDarkMode,
-    ...other
-  } = props;
-
-  const styleProps = {
-    "--tree-view-color":
-      theme.palette.mode !== "dark" ? color : colorForDarkMode,
-    "--tree-view-bg-color":
-      theme.palette.mode !== "dark" ? bgColor : bgColorForDarkMode,
-  };
-
-  return (
-    <StyledTreeItemRoot
-      label={
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            p: 0.5,
-            pr: 0,
-          }}
-        >
-          {/* <Box component={LabelIcon} color="inherit" sx={{ mr: 1 }} /> */}
-          {typeof labelText == "string" ? (
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: "inherit", flexGrow: 1 }}
-            >
-              {labelText}
-            </Typography>
-          ) : (
-            labelText
-          )}
-          {chosen}
-        </Box>
-      }
-      style={styleProps}
-      {...other}
-    />
-  );
-}
-
-const CreateNodeItem: FC<{
-  compNode: any;
-  setChosen: (s: string[]) => void;
-  chosenList: string[];
-  isRoot: boolean;
-}> = ({ compNode, setChosen, chosenList, isRoot }) => {
-  return (
-    <StyledTreeItem
-      nodeId={compNode.component.id}
-      labelText={
-        <Typography variant="body2" sx={{ fontWeight: "bolder", flexGrow: 1 }}>
-          {compNode.component.component_signature +
-            (compNode.component.parameters.length > 0
-              ? `<${compNode.component.parameters
-                  .map((param: string) => "$" + param)
-                  .join(",")}>`
-              : "")}
-        </Typography>
-      }
-      labelIcon={CopyrightIcon}
-      chosen={
-        isRoot ? (
-          <></>
-        ) : (
-          <Checkbox
-            checked={
-              chosenList.find((id) => id == compNode.component.id) != undefined
-            }
-            onChange={(e) => {
-              if (
-                chosenList.find((id) => id == compNode.component.id) ==
-                undefined
-              )
-                setChosen([...chosenList, compNode.component.id]);
-              else
-                setChosen(
-                  chosenList.filter((id) => id != compNode.component.id)
-                );
-            }}
-          />
-        )
-      }
-    >
-      {Object.keys(compNode.parameters).map((param: any) => (
-        <StyledTreeItem
-          key={`${compNode.component.id}-${param}`}
-          nodeId={`${compNode.component.id}-${param}`}
-          labelText={`$${param}`}
-          labelIcon={CodeIcon}
-        >
-          {compNode.parameters[param].map((nd: any) => (
-            <CreateNodeItem
-              compNode={nd}
-              setChosen={setChosen}
-              chosenList={chosenList}
-              key={nd.component.id}
-              isRoot={false}
-            />
-          ))}
-        </StyledTreeItem>
-      ))}
-    </StyledTreeItem>
   );
 };

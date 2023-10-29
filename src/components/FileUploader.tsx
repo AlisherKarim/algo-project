@@ -57,6 +57,7 @@ export const UploadModal: FC<{
     data.append('username', user.username)
     data.append('user_fullname', user.attributes?.name || '')
     data.append('file', file)
+    console.log(data)
     
     fetch("https://1c2kn07ik5.execute-api.us-east-1.amazonaws.com/unzipAndUpload", {
       method: 'POST',

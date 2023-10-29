@@ -112,7 +112,7 @@ export async function getServerSideProps(
       props: {
         authenticated: true,
         username: user.username,
-        name: user.attributes?.name,
+        name: user.attributes?.name ?? null,
       },
     };
   } catch (err) {
