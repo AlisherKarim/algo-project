@@ -52,6 +52,7 @@ import { MainPageContext, MainPageContextProvider, ProjectContext } from "@/cont
 import { MainList } from "@/components/MainPageComponents/MainComponentsList";
 import { MainComponentBlock } from "@/components/MainPageComponents/MainComponentBlock";
 import { MainComponentCombinationsViewer } from "@/components/MainPageComponents/MainComponentCombinationsViewer";
+import { AnalysisComponent } from "@/components/MainPageComponents/GraphViewer";
 
 const MainPage: FC<{mainComponents: any[]}> = (props) => {
   const {isLoading, setLoading, alertMessage, setAlertMessage} = useContext(ProjectContext);
@@ -84,6 +85,7 @@ const MainPage: FC<{mainComponents: any[]}> = (props) => {
               <MainList mainComponents={props.mainComponents}/>
               <MainComponentBlock />
               <MainComponentCombinationsViewer />
+              <AnalysisComponent />
             </MainPageContextProvider>
           </Paper>
           

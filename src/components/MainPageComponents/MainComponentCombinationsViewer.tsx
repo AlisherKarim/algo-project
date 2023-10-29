@@ -1,30 +1,35 @@
-import { MainPageContext } from '@/context';
-import { Alert, Button, Checkbox, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Skeleton, SvgIconProps, styled, useTheme } from '@mui/material';
-import React, { FC, ReactNode, useContext, useEffect, useState } from 'react'
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import { TreeItem, TreeItemProps, TreeView, treeItemClasses } from '@mui/lab';
+import { MainPageContext } from "@/context";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  CircularProgress,
+  Divider,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Skeleton,
+  SvgIconProps,
+  styled,
+  useTheme,
+} from "@mui/material";
+import React, { FC, ReactNode, useContext, useEffect, useState } from "react";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+import { TreeItem, TreeItemProps, TreeView, treeItemClasses } from "@mui/lab";
 
 import CopyrightIcon from "@mui/icons-material/Copyright";
 import CodeIcon from "@mui/icons-material/Code";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowRightIcon from "@mui/icons-material/ArrowRight";
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { Storage } from "aws-amplify";
 
 export const MainComponentCombinationsViewer = () => {
-  const [showLoadingSkeleton, setLoadingSkeleton] = useState<boolean>(false);
-  const [value, setValue] = React.useState(0);
-  const [showCombinationsView, setShowCombinationsView] = useState<boolean>(false)
-
-  // dropdown view related
-  const [combinations, setCombinations] = useState<any>([])
-  const [chosenCombination, setChosenCombination] = useState<string>()
-
-  // tree view related
-  const [chosenList, setChosen] = useState<any[]>([])
-
   const {
     mainComponents,
     setMainComponents,
@@ -33,13 +38,54 @@ export const MainComponentCombinationsViewer = () => {
     currentComponentTree,
     setCurrentComponentTree,
     currentChosenList,
-    setCurrentChosenList
+    setCurrentChosenList,
+    wasmURL,
+    setWasmUrl,
   } = useContext(MainPageContext);
+  const [showLoadingSkeleton, setLoadingSkeleton] = useState<boolean>(false);
+  const [value, setValue] = React.useState(0);
+  const [showCombinationsView, setShowCombinationsView] =
+    useState<boolean>(false);
+
+  // dropdown view related
+  const [combinations, setCombinations] = useState<any>([]);
+  const [chosenCombination, setChosenCombination] = useState<string>();
+  const [loadingMain, setLoadingMain] = useState<boolean>(false);
+
+  const handleCreate = (e: any) => {
+    setLoadingMain(true);
+    fetch(
+      "https://dog5x4pmlc.execute-api.us-east-1.amazonaws.com/default/cppc-compiler",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          main_id: currentChosenComponent.id,
+          chosen_components: currentChosenList,
+          combination: chosenCombination,
+        }),
+      }
+    )
+      .then(async (res) => {
+        const body = await res.json();
+        console.log(body.message);
+        const url = await Storage.get(body.message);
+        setWasmUrl(url);
+        setLoadingMain(false);
+      })
+      .catch((err) => {
+        console.log(err);
+        setLoadingMain(false);
+      });
+  };
+
+  // tree view related
+  const [chosenList, setChosen] = useState<any[]>([]);
 
   useEffect(() => {
-    setShowCombinationsView(false)
-    setCurrentComponentTree(null)
-  }, [currentChosenComponent])
+    setShowCombinationsView(false);
+    setCurrentComponentTree(null);
+    setWasmUrl(null);
+  }, [currentChosenComponent]);
 
   // tab related
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -47,6 +93,7 @@ export const MainComponentCombinationsViewer = () => {
   };
   const handleCombinationChange = (e: any) => {
     setChosenCombination(e.target.value);
+    setWasmUrl(null);
   };
 
   // returns array of components for the respective param_names
@@ -66,16 +113,16 @@ export const MainComponentCombinationsViewer = () => {
   };
 
   const combinationParser = (combination: string) => {
-    console.log(combination)
+    console.log(combination);
     // combinations is always in the form {comp_name}<{comp1}, {comp2}, ...>
     // where compi is combination itself
 
     // comp_name is {namespace}::{name}
 
-    const comp_name = combination.split('<')[0]
-    console.log(comp_name)
-    const name = comp_name.split('::').slice(-1)[0];
-    console.log(name)
+    const comp_name = combination.split("<")[0];
+    console.log(comp_name);
+    const name = comp_name.split("::").slice(-1)[0];
+    console.log(name);
 
     // params
     const startIdx = combination.indexOf("<");
@@ -86,10 +133,9 @@ export const MainComponentCombinationsViewer = () => {
       const classNames = classNamesStr
         .split(",")
         .map((className) => className.trim());
-      console.log(classNames)
+      console.log(classNames);
     }
-
-  }
+  };
 
   // !important function
   const submitHandler = () => {
@@ -110,15 +156,16 @@ export const MainComponentCombinationsViewer = () => {
 
           const body = await res.json();
           // console.log(body.combinations.split('\'').filter((s: string, index: number) => index % 2 == 1))
-          const combinations = body.message
-            .split("'")
-            .filter((s: string, index: number) => index % 2 == 1) ?? [];
-          
-          console.log(combinations)
-          setCombinations(combinations)
+          const combinations =
+            body.message
+              .split("'")
+              .filter((s: string, index: number) => index % 2 == 1) ?? [];
 
-          for(var i = 0; i < combinations.length; i++) {
-            combinationParser(combinations[i])
+          console.log(combinations);
+          setCombinations(combinations);
+
+          for (var i = 0; i < combinations.length; i++) {
+            combinationParser(combinations[i]);
           }
 
           // init
@@ -148,8 +195,8 @@ export const MainComponentCombinationsViewer = () => {
         }
         // setLoadingComb(false);
 
-        setLoadingSkeleton(false)
-        setShowCombinationsView(true)
+        setLoadingSkeleton(false);
+        setShowCombinationsView(true);
       })
       .catch((err) => {
         console.log(err);
@@ -157,34 +204,50 @@ export const MainComponentCombinationsViewer = () => {
   };
 
   const handleComponentChosen = () => {
-    console.log(currentComponentTree)
-    setLoadingSkeleton(true)
-    submitHandler()
-  }
-
+    console.log(currentComponentTree);
+    setLoadingSkeleton(true);
+    setWasmUrl(null)
+    submitHandler();
+  };
 
   return (
     <div>
-      {currentComponentTree != null && 
-        <div style={{margin: '2rem'}}>
-          <div style={{width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '2rem'}}>
-            <KeyboardArrowDownIcon color="primary" fontSize='large' />
+      {currentComponentTree != null && (
+        <div style={{ margin: "2rem" }}>
+          <div
+            style={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              marginBottom: "2rem",
+            }}
+          >
+            <KeyboardArrowDownIcon color="primary" fontSize="large" />
           </div>
-          <Button onClick={() => handleComponentChosen()} variant='outlined'>Find possible combinations</Button>
+          <Button onClick={() => handleComponentChosen()} variant="outlined">
+            Find possible combinations
+          </Button>
         </div>
-      }
+      )}
 
-      {
-        showLoadingSkeleton &&
-        <div style={{marginTop: '2rem'}}>
-          <Skeleton variant="rounded" sx={{width: '100%', height: '200px'}} />
+      {showLoadingSkeleton && (
+        <div style={{ marginTop: "2rem" }}>
+          <Skeleton variant="rounded" sx={{ width: "100%", height: "200px" }} />
         </div>
-      }
+      )}
 
-      {!showLoadingSkeleton && showCombinationsView &&
-        <Paper sx={{ width: '100%', marginTop: '2rem', padding: '1rem' }} variant="outlined">
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
+      {!showLoadingSkeleton && showCombinationsView && (
+        <Paper
+          sx={{ width: "100%", marginTop: "2rem", padding: "1rem" }}
+          variant="outlined"
+        >
+          <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+            <Tabs
+              value={value}
+              onChange={handleChange}
+              aria-label="basic tabs example"
+            >
               <Tab label="Tree view" {...a11yProps(0)} />
               <Tab label="Dropdown view [temp]" {...a11yProps(1)} />
             </Tabs>
@@ -192,7 +255,6 @@ export const MainComponentCombinationsViewer = () => {
 
           {/* tree view */}
           <CustomTabPanel value={value} index={0}>
-
             <Alert
               sx={{
                 marginBottom: "2rem",
@@ -206,7 +268,7 @@ export const MainComponentCombinationsViewer = () => {
               defaultCollapseIcon={<ArrowDropDownIcon />}
               defaultExpandIcon={<ArrowRightIcon />}
               defaultEndIcon={<div style={{ width: 24 }} />}
-              sx={{ flexGrow: 1, overflowY: "auto", padding: '1rem' }}
+              sx={{ flexGrow: 1, overflowY: "auto", padding: "1rem" }}
             >
               <CreateNodeItem
                 compNode={currentComponentTree}
@@ -219,42 +281,41 @@ export const MainComponentCombinationsViewer = () => {
 
           {/* select view */}
           <CustomTabPanel value={value} index={1}>
-              <FormControl fullWidth sx={{ margin: "1rem 0" }}>
-                <InputLabel id="demo-simple-select-label">
-                  Possible combinations
-                </InputLabel>
-                <Select
-                  labelId="demo-simple-select-label"
-                  id="demo-simple-select"
-                  value={chosenCombination}
-                  label="Combination"
-                  onChange={handleCombinationChange}
-                  sx={{ backgroundColor: "#fff" }}
-                >
-                  {combinations.map((comb: string, ind: number) => (
-                    <MenuItem value={comb} key={ind}>
-                      {comb}
-                    </MenuItem>
-                  ))}
-                </Select>
-                <Button sx={{marginTop: '1rem'}}>
-                  {/* {loadingMain && (
-                    <CircularProgress
-                      size={20}
-                      sx={{ marginRight: "1rem" }}
-                      color="success"
-                    />
-                  )} */}
-                  <span>Create Main</span>
-                </Button>
-              </FormControl>
+            <FormControl fullWidth sx={{ margin: "1rem 0" }}>
+              <InputLabel id="demo-simple-select-label">
+                Possible combinations
+              </InputLabel>
+              <Select
+                labelId="demo-simple-select-label"
+                id="demo-simple-select"
+                value={chosenCombination}
+                label="Combination"
+                onChange={handleCombinationChange}
+                sx={{ backgroundColor: "#fff" }}
+              >
+                {combinations.map((comb: string, ind: number) => (
+                  <MenuItem value={comb} key={ind}>
+                    {comb}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Button sx={{ marginTop: "1rem" }} onClick={handleCreate}>
+                {loadingMain && (
+                  <CircularProgress
+                    size={20}
+                    sx={{ marginRight: "1rem" }}
+                    color="success"
+                  />
+                )}
+                <span>Create Main</span>
+              </Button>
+            </FormControl>
           </CustomTabPanel>
         </Paper>
-      }
+      )}
     </div>
-  )
-}
-
+  );
+};
 
 // Tab related
 
@@ -287,14 +348,11 @@ function CustomTabPanel(props: TabPanelProps) {
 function a11yProps(index: number) {
   return {
     id: `simple-tab-${index}`,
-    'aria-controls': `simple-tabpanel-${index}`,
+    "aria-controls": `simple-tabpanel-${index}`,
   };
 }
 
-
-
 // Tree view related
-
 
 declare module "react" {
   interface CSSProperties {

@@ -11,6 +11,7 @@ export const MainPageContextProvider = ({children}) => {
   const [currentChosenComponent, setCurrentChosenComponent] = useState(null);
   const [currentComponentTree, setCurrentComponentTree] = useState(null);
   const [currentChosenList, setCurrentChosenList] = useState([]);
+  const [wasmURL, setWasmUrl] = useState(null);
 
   const value = {
     mainComponents,
@@ -20,7 +21,9 @@ export const MainPageContextProvider = ({children}) => {
     currentComponentTree,
     setCurrentComponentTree,
     currentChosenList,
-    setCurrentChosenList
+    setCurrentChosenList,
+    wasmURL,
+    setWasmUrl
   }
 
   return (
