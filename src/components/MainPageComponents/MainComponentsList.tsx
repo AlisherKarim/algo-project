@@ -371,7 +371,7 @@ export const MainList: FC<{ mainComponents: Component[] }> = (props) => {
           }}
           severity="warning"
         >
-          Currently we don't have any component to test
+          Currently we don&apos;t have any component to test
         </Alert>
       ) : (
         <>
